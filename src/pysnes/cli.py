@@ -1,44 +1,30 @@
 import click
-import gymnasium
 import os
+from .env import SnesEnv
+import time
 
 
 @click.command()
-@click.argument('rom')
-@click.option('--human', 'mode', flag_value='human', default=True)
-@click.option('--random', 'mode', flag_value='random')
+@click.argument("rom")
+@click.option("--human", "mode", flag_value="human", default=True)
+@click.option("--random", "mode", flag_value="random")
 @click.version_option()
-def cli(rom: os.PathLike):
+def cli(rom: os.PathLike, mode: str):
     """Main CLI entrypoint for pysnes"""
-    print("Hello from pysnes!")
-    
-@click.command()
-def human(gym: gymnasium.Env):
-    """
-    Play the environment using keyboard as a human.
-    
-    Args:
-        env: the initialized gym environment to play
-        
-    Returns:
-        None
-    """
+    env = SnesEnv(rom)
+    obs = env.reset()
 
-    # ensure the observation space is a box of pixels
-    assert isinstance(gym.observation_space, gym.spaces.Box), "Observation space must be a box of pixels"
-    # ensure the observation space is either B&W pixels or RGB Pixels
-    obs_s = gym.observation_space
-    is_bw = len(obs_s.shape) == 2
-    is_rgb = len(obs_s.shape) == 3 and obs_s.shape[2] in [1, 3]
-    assert is_bw or is_rgb, "Observation space must be a box of pixels"
-    
-    # get keyboard mapping
-    if hasattr(gym, "get_keys_to_action"):
-        keys_to_action = gym.get_keys_to_action()
-    elif hasattr(gym.unwrapped, "get_keys_to_action"):
-        keys_to_action = gym.unwrapped.get_keys_to_action()
-    else:
-        raise ValueError("Environment does not have a get_keys_to_action method")
-    
-    # TODO: create the image viewer
-    viewer = None
+    if mode == "human":
+        # Human mode: requires a keyboard listener
+        print("Human mode is not fully implemented yet.")
+        print("Use random mode to see the emulator in action.")
+
+    elif mode == "random":
+        done = False
+        while not done:
+            action = env.action_space.sample()
+            obs, reward, done, info = env.step(action)
+            env.render()
+            time.sleep(1 / 60)
+
+    env.close()

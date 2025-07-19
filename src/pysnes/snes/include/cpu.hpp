@@ -1,66 +1,55 @@
-#ifndef CPU_HPP
-#define CPU_HPP
-
+#pragma once
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
-#include <functional>
 
 class Bus;
 
 class CPU {
-public:
+  public:
     CPU();
     ~CPU();
 
-    // Registers
-    uint8_t a = 0x00;      // Accumulator
-    uint8_t x = 0x00;      // X Register
-    uint8_t y = 0x00;      // Y Register
-    uint8_t sp = 0xFD;     // Stack Pointer
-    uint16_t pc = 0x0000;  // Program Counter
-    uint8_t status = 0x00; // Status Register
+    // CPU Core registers
+    uint8_t a = 0x00;
+    uint8_t x = 0x00;
+    uint8_t y = 0x00;
+    uint8_t stkp = 0x00;
+    uint16_t pc = 0x0000;
+    uint8_t status = 0x00;
 
-    // Status Flags
-    enum FLAGS {
-        C = (1 << 0), // Carry Bit
-        Z = (1 << 1), // Zero
-        I = (1 << 2), // Disable Interrupts
-        D = (1 << 3), // Decimal Mode (unused in NES)
-        B = (1 << 4), // Break
-        U = (1 << 5), // Unused
-        V = (1 << 6), // Overflow
-        N = (1 << 7), // Negative
-    };
+    std::shared_ptr<Bus> bus = nullptr;
 
-    void connect_bus(Bus* b);
-
-    // Core functionality
-    void step();
+    // Core Functions
+    void connect_bus(std::shared_ptr<Bus> b);
+    void clock();
     void reset();
     void irq();
     void nmi();
+    void step();
     void power_on();
 
-private:
-    Bus* bus = nullptr;
+    // Addressing Modes & Opcodes are now private implementation details
+    uint8_t fetched = 0x00;
+    uint16_t addr_abs = 0x0000;
+    uint16_t addr_rel = 0x00;
+    uint8_t opcode = 0x00;
     uint8_t cycles = 0;
-    uint16_t fetched_addr = 0x0000;
-    uint8_t fetched_data = 0x00;
 
-    uint8_t read(uint16_t addr);
-    void write(uint16_t addr, uint8_t data);
+    enum FLAGS {
+        C = (1 << 0), Z = (1 << 1), I = (1 << 2), D = (1 << 3),
+        B = (1 << 4), U = (1 << 5), V = (1 << 6), N = (1 << 7),
+    };
 
+  private:
     uint8_t get_flag(FLAGS f);
     void set_flag(FLAGS f, bool v);
 
     // Addressing Modes
-    uint8_t IMP(); uint8_t IMM();
-    uint8_t ZP0(); uint8_t ZPX();
-    uint8_t ZPY(); uint8_t REL();
-    uint8_t ABS(); uint8_t ABX();
-    uint8_t ABY(); uint8_t IND();
-    uint8_t IZX(); uint8_t IZY();
+    uint8_t IMM(); uint8_t ZP0(); uint8_t ZPX(); uint8_t ZPY();
+    uint8_t ABS(); uint8_t ABX(); uint8_t ABY(); uint8_t IND();
+    uint8_t IZX(); uint8_t IZY(); uint8_t REL();
 
     // Opcodes
     uint8_t ADC(); uint8_t AND(); uint8_t ASL(); uint8_t BCC();
@@ -77,17 +66,5 @@ private:
     uint8_t SEC(); uint8_t SED(); uint8_t SEI(); uint8_t STA();
     uint8_t STX(); uint8_t STY(); uint8_t TAX(); uint8_t TAY();
     uint8_t TSX(); uint8_t TXA(); uint8_t TXS(); uint8_t TYA();
-
-    uint8_t XXX(); // Illegal opcodes
-
-    struct Instruction {
-        std::string name;
-        std::function<uint8_t(CPU*)> operate;
-        std::function<uint8_t(CPU*)> addrmode;
-        uint8_t cycles = 0;
-    };
-
-    std::vector<Instruction> lookup;
+    uint8_t XXX(); // Represents an illegal opcode
 };
-
-#endif // CPU_HPP

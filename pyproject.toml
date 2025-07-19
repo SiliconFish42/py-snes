@@ -10,16 +10,21 @@ requires-python = ">=3.11"
 dependencies = [
     "click>=8.2.1",
     "gymnasium>=1.2.0",
+    "numpy",
+    "pybind11>=3.0.0",
+    "scikit-build-core",
 ]
 
 [project.scripts]
 pysnes = "pysnes:cli"
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["scikit-build-core", "pybind11"]
+build-backend = "scikit_build_core.build"
 
-[dependency-groups]
-dev = [
-    "scons>=4.9.1",
-]
+[tool.scikit-build]
+wheel.packages = ["src/pysnes"]
+install.strip = false
+
+[tool.scikit-build.cmake.define]
+CMAKE_INTERPROCEDURAL_OPTIMIZATION = "OFF"

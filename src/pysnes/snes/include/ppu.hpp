@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <vector>
 #include <array>
 
 #include "cartridge.hpp"
@@ -27,7 +28,7 @@ public:
     void start_dma(uint8_t page);
 
     // Screen buffer
-    std::array<uint32_t, 256 * 240>& get_screen();
+    std::vector<uint32_t>& get_screen();
     bool frame_complete = false;
     bool nmi = false;
 
@@ -101,7 +102,7 @@ private:
     int16_t cycle = 0;
 
     // Screen buffer
-    std::array<uint32_t, 256 * 240> screen;
+    std::vector<uint32_t> screen;
     // System palette
     std::array<uint32_t, 64> palette_colors;
 
