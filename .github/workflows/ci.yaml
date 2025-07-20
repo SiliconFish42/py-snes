@@ -19,6 +19,9 @@ jobs:
         run: |
           curl -Ls https://astral.sh/uv/install.sh | sh
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          uv venv
+          source .venv/bin/activate
+          uv pip install -U pip
       - name: Install dependencies
         run: |
           uv pip install -e .
@@ -42,6 +45,8 @@ jobs:
           curl -Ls https://astral.sh/uv/install.sh | sh
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
           uv venv
+          source .venv/bin/activate
+          uv pip install -U pip
       - name: Build project
         run: make build
       - name: Run tests
