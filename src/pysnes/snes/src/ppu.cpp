@@ -1,5 +1,6 @@
 #include "ppu.hpp"
 #include <cstring>
+#include <string>
 #include <vector>
 #include <fstream>
 

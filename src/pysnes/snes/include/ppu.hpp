@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <array>
 #include <vector>
+#include <string>
 
 // SNES PPU (Picture Processing Unit) - Initial Skeleton
 // VRAM: 64KB, CGRAM: 512B, OAM: 544B
