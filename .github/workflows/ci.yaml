@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install uv
+        run: |
+          curl -Ls https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - name: Install dependencies
+        run: |
+          uv pip install -e .
+          uv pip install flake8
+      - name: Run flake8
+        run: flake8 src/ tests/
+
+  build-and-test:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install CMake
+        uses: jwlawson/actions-setup-cmake@v1
+      - name: Install uv
+        run: |
+          curl -Ls https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - name: Build project
+        run: make build
+      - name: Run tests
+        run: make test
+      - name: Output test report to summary
+        if: always()
+        run: |
+          if [ -f test_output/test_report.txt ]; then
+            cat test_output/test_report.txt >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Test report not found." >> $GITHUB_STEP_SUMMARY
+          fi
+      - name: Upload test report JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: test_output/test_report.json 
