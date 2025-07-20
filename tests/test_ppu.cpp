@@ -304,7 +304,7 @@ TEST_F(PPUTest, BGMode0ScrollingAndWraparound) {
     for (int x = 248; x < 256; ++x) {
         EXPECT_EQ(row[x], 2) << "x=" << x;
     }
-} 
+}
 
 // --- Sprite Rendering: Scanline Evaluation and Overflow ---
 
@@ -365,7 +365,7 @@ TEST_F(PPUTest, SpritePriorityAndOrder) {
     EXPECT_EQ(attr1.y, 30);
     EXPECT_EQ(attr0.attr & 0x20, 0x00); // priority 0
     EXPECT_EQ(attr1.attr & 0x20, 0x20); // priority 1
-} 
+}
 
 TEST_F(PPUTest, SpriteScanlineEvaluation_Size8x8And16x16) {
     // Set OBSEL to 8x8 (0), then 16x16 (1)
@@ -413,7 +413,7 @@ TEST_F(PPUTest, SpriteScanlineEvaluation_YWrapping) {
         EXPECT_EQ(indices.size(), 1);
         EXPECT_EQ(indices[0], 0);
     }
-} 
+}
 
 TEST_F(PPUTest, ExportFramebufferPPMWritesPPMFile) {
     // Fill framebuffer with a test pattern (gradient)
@@ -444,4 +444,4 @@ TEST_F(PPUTest, ExportFramebufferPPMWritesPPMFile) {
     EXPECT_GE(file_size, expected_size - 16); // Allow for whitespace differences
     ifs.close();
     std::remove(filename.c_str());
-} 
+}

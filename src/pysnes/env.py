@@ -1,7 +1,9 @@
-import gymnasium as gym
-from gymnasium import spaces
-import numpy as np
 import os
+
+import gymnasium as gym
+import numpy as np
+from gymnasium import spaces
+
 from . import pysnes_cpp
 
 

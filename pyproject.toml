@@ -29,3 +29,11 @@ wheel.packages = ["src/pysnes"]
 dev = [
     "pytest>=8.4.1",
 ]
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+include = '\.ipy?$'
+
+[tool.isort]
+profile = "black"

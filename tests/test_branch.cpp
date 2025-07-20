@@ -351,4 +351,4 @@ TEST_F(BranchPageBoundaryTest, BCC_PageCross) {
     cpu->step();
     EXPECT_EQ(cpu->cycles, 4); // Extra cycle for page cross
     EXPECT_EQ(cpu->pc, 0x7E0102); // Crossed to next page
-} 
+}

@@ -23,17 +23,17 @@ TEST_F(JSRTest, JSR_Absolute) {
     cpu->reset();
     cpu->pc = 0x7E0000;
     cpu->stkp = 0x01FD; // Initial stack pointer
-    
+
     bus->write(cpu->pc, 0x20); // JSR opcode
     bus->write(cpu->pc + 1, 0x34); // Low byte of target address
     bus->write(cpu->pc + 2, 0x12); // High byte of target address
-    
+
     cpu->step();
-    
+
     EXPECT_EQ(cpu->cycles, 6);
     EXPECT_EQ(cpu->pc, 0x1234); // Jumped to target address
     EXPECT_EQ(cpu->stkp, 0x01FB); // Stack pointer decremented by 2
-    
+
     // Check return address pushed to stack (PC-1, last byte of JSR instruction)
     EXPECT_EQ(bus->read(0x01FC), 0x00); // High byte of return address (0x0002)
     EXPECT_EQ(bus->read(0x01FB), 0x02); // Low byte of return address
@@ -44,18 +44,18 @@ TEST_F(JSRTest, JSR_AbsoluteLong) {
     cpu->pc = 0x7E0000;
     cpu->pb = 0x7E; // Set program bank
     cpu->stkp = 0x01FD; // Initial stack pointer
-    
+
     bus->write(cpu->pc, 0x22); // JSR absolute long opcode
     bus->write(cpu->pc + 1, 0x34); // Low byte of target address
     bus->write(cpu->pc + 2, 0x12); // High byte of target address
     bus->write(cpu->pc + 3, 0x56); // Bank byte of target address
-    
+
     cpu->step();
-    
+
     EXPECT_EQ(cpu->cycles, 8);
     EXPECT_EQ(cpu->pc, 0x561234); // Jumped to target address
     EXPECT_EQ(cpu->stkp, 0x01FA); // Stack pointer decremented by 3
-    
+
     // Check return address pushed to stack (PC-1, last byte of JSR instruction)
     EXPECT_EQ(bus->read(0x01FC), 0x00); // High byte of return address (0x0003)
     EXPECT_EQ(bus->read(0x01FB), 0x03); // Low byte of return address
@@ -70,15 +70,15 @@ TEST_F(RTSTest, RTS_Return) {
     cpu->pc = 0x7E0000;
     cpu->stkp = 0x01FB; // Stack pointer pointing to pushed return address
     cpu->pb = 0x7E; // Program bank register
-    
+
     // Push return address to stack (simulating JSR)
     bus->write(0x01FC, 0x00); // High byte of return address
     bus->write(0x01FB, 0x02); // Low byte of return address
-    
+
     bus->write(cpu->pc, 0x60); // RTS opcode
-    
+
     cpu->step();
-    
+
     EXPECT_EQ(cpu->cycles, 6);
     EXPECT_EQ(cpu->pc, 0x7E0003); // Return address + 1
     EXPECT_EQ(cpu->stkp, 0x01FD); // Stack pointer incremented by 2
@@ -89,11 +89,11 @@ TEST_F(RTSTest, RTS_CrossBank) {
     cpu->pc = 0x7E0000;
     cpu->stkp = 0x01FB; // Stack pointer pointing to pushed return address
     cpu->pb = 0x80; // Different program bank
-    
+
     // Push return address to stack (simulating JSR)
     bus->write(0x01FC, 0x00); // High byte of return address
     bus->write(0x01FB, 0x03); // Low byte of return address
-    
+
     printf("DEBUG: pc=%08X 1FC=%02X 1FB=%02X\n", cpu->pc, bus->read(0x01FC), bus->read(0x01FB));
     bus->write(cpu->pc, 0x60);
     // 65816 RTS does NOT restore PB from the stack; it returns to the current PB
@@ -102,7 +102,7 @@ TEST_F(RTSTest, RTS_CrossBank) {
     uint32_t rts_addr = ((uint32_t)cpu->pb << 16) | cpu->pc;
     bus->write(rts_addr, 0x60); // RTS opcode at WRAM address
     cpu->step();
-    
+
     EXPECT_EQ(cpu->cycles, 6);
     // Expect return to (PB << 16) | (addr + 1)
     EXPECT_EQ(cpu->pc, 0x7E0004);
@@ -116,16 +116,16 @@ TEST_F(RTLTest, RTL_Return) {
     cpu->reset();
     cpu->pc = 0x7E0000;
     cpu->stkp = 0x01FA; // Stack pointer pointing to pushed return address (3 bytes)
-    
+
     // Push return address to stack (simulating JSR long)
     bus->write(0x01FC, 0x00); // High byte of return address
     bus->write(0x01FB, 0x03); // Low byte of return address
     bus->write(0x01FA, 0x7E); // Bank byte of return address
-    
+
     bus->write(cpu->pc, 0x6B); // RTL opcode
-    
+
     cpu->step();
-    
+
     EXPECT_EQ(cpu->cycles, 6);
     EXPECT_EQ(cpu->pc, 0x7E0004); // Return address + 1
     EXPECT_EQ(cpu->stkp, 0x01FD); // Stack pointer incremented by 3
@@ -139,16 +139,16 @@ TEST_F(RTITest, RTI_Return) {
     cpu->pc = 0x7E0000;
     cpu->stkp = 0x01FA; // Stack pointer pointing to pushed data (3 bytes)
     cpu->p = 0x00; // Clear status register initially
-    
+
     // Push return data to stack (simulating interrupt)
     bus->write(0x01FC, 0x00); // High byte of return address
     bus->write(0x01FB, 0x02); // Low byte of return address
     bus->write(0x01FA, 0x34); // Status register (with some flags set)
-    
+
     bus->write(cpu->pc, 0x40); // RTI opcode
-    
+
     cpu->step();
-    
+
     EXPECT_EQ(cpu->cycles, 6);
     EXPECT_EQ(cpu->pc, 0x0002); // Return address (no bank preservation)
     EXPECT_EQ(cpu->stkp, 0x01FD); // Stack pointer incremented by 3
@@ -160,16 +160,16 @@ TEST_F(RTITest, RTI_StatusFlags) {
     cpu->pc = 0x7E0000;
     cpu->stkp = 0x01FA; // Stack pointer pointing to pushed data
     cpu->p = 0x00; // Clear status register initially
-    
+
     // Push return data to stack with specific flags
     bus->write(0x01FC, 0x00); // High byte of return address
     bus->write(0x01FB, 0x02); // Low byte of return address
     bus->write(0x01FA, 0xCF); // Status register with Carry, Zero, Negative flags
-    
+
     bus->write(cpu->pc, 0x40); // RTI opcode
-    
+
     cpu->step();
-    
+
     EXPECT_EQ(cpu->cycles, 6);
     EXPECT_EQ(cpu->pc, 0x0002); // Return address
     EXPECT_EQ(cpu->stkp, 0x01FD); // Stack pointer incremented by 3
@@ -187,23 +187,23 @@ TEST_F(JSRRTSCombinationTest, JSR_RTS_Complete) {
     cpu->pc = 0x7E0000;
     cpu->pb = 0x7E; // Set program bank
     cpu->stkp = 0x01FD; // Initial stack pointer
-    
+
     // Execute JSR
     bus->write(cpu->pc, 0x20); // JSR opcode
     bus->write(cpu->pc + 1, 0x34); // Low byte of target address
     bus->write(cpu->pc + 2, 0x12); // High byte of target address
-    
+
     cpu->step();
-    
+
     EXPECT_EQ(cpu->pc, 0x7E1234); // Jumped to subroutine (preserving bank)
     EXPECT_EQ(cpu->stkp, 0x01FB); // Stack pointer decremented
-    
+
     // At subroutine location, execute RTS
     cpu->pc = 0x7E1234; // Set PC to subroutine location
     bus->write(cpu->pc, 0x60); // RTS opcode
-    
+
     cpu->step();
-    
+
     EXPECT_EQ(cpu->cycles, 6); // RTS cycles
     EXPECT_EQ(cpu->pc, 0x7E0003); // Returned to original location + 1
     EXPECT_EQ(cpu->stkp, 0x01FD); // Stack pointer restored
@@ -242,28 +242,28 @@ TEST_F(NestedSubroutineTest, Nested_JSR_RTS) {
     cpu->reset();
     cpu->pc = 0x7E0000;
     cpu->stkp = 0x01FD; // Initial stack pointer
-    
+
     // First JSR
     bus->write(cpu->pc, 0x20); // JSR opcode
     bus->write(cpu->pc + 1, 0x34); // Low byte of target address
     bus->write(cpu->pc + 2, 0x12); // High byte of target address
-    
+
     cpu->step();
 
     EXPECT_EQ(cpu->pc, 0x1234); // First subroutine
     EXPECT_EQ(cpu->stkp, 0x01FB); // Stack pointer after first JSR
-    
+
     // Second JSR from first subroutine
     cpu->pc = 0x1234;
     bus->write(cpu->pc, 0x20); // JSR opcode
     bus->write(cpu->pc + 1, 0x78); // Low byte of target address
     bus->write(cpu->pc + 2, 0x56); // High byte of target address
-    
+
     cpu->step();
 
     EXPECT_EQ(cpu->pc, 0x5678); // Second subroutine
     EXPECT_EQ(cpu->stkp, 0x01F9); // Stack pointer after second JSR
-    
+
     // First RTS (return from second subroutine)
     cpu->pc = 0x5678;
     // 65816 RTS does NOT restore PB from the stack; it returns to the current PB
@@ -271,12 +271,12 @@ TEST_F(NestedSubroutineTest, Nested_JSR_RTS) {
     cpu->pc = 0x5678;
     bus->write(((uint32_t)cpu->pb << 16) | cpu->pc, 0x60); // RTS opcode at WRAM address
     cpu->step();
-    
+
     // Second RTS (return from first subroutine)
     cpu->pc = 0x1237;
     bus->write(((uint32_t)cpu->pb << 16) | cpu->pc, 0x60); // RTS opcode at correct address
     cpu->step();
-    
+
     EXPECT_EQ(cpu->pc, 0x7E0003); // Return to original location + 1
     EXPECT_EQ(cpu->stkp, 0x01FD); // Stack pointer restored
 }
@@ -288,13 +288,13 @@ TEST_F(JumpSubroutineEdgeTest, JSR_ZeroAddress) {
     cpu->reset();
     cpu->pc = 0x7E0000;
     cpu->stkp = 0x01FD;
-    
+
     bus->write(cpu->pc, 0x20); // JSR opcode
     bus->write(cpu->pc + 1, 0x00); // Low byte of target address
     bus->write(cpu->pc + 2, 0x00); // High byte of target address
-    
+
     cpu->step();
-    
+
     EXPECT_EQ(cpu->cycles, 6);
     EXPECT_EQ(cpu->pc, 0x0000); // Jumped to zero address
     EXPECT_EQ(cpu->stkp, 0x01FB); // Stack pointer decremented
@@ -313,4 +313,4 @@ TEST_F(JumpSubroutineEdgeTest, RTS_EmptyStack) {
     EXPECT_EQ(cpu->cycles, 6);
     EXPECT_EQ(cpu->stkp, 0x0101); // After two pops from 0x01FF, should be 0x0101
     // Note: PC value depends on what was in memory at stack locations
-} 
+}

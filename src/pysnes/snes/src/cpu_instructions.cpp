@@ -10,19 +10,19 @@ void CPUInstructions::brk(CPU* cpu) {
     // Push PC and P to stack (PC was already incremented after fetching opcode)
     CPUHelpers::push_16(cpu, cpu->pc);
     CPUHelpers::push_8(cpu, (cpu->p | 0x10) & 0xFF); // Set B flag
-    
+
     // Set I flag and jump to interrupt vector
     CPUHelpers::set_flag(cpu, CPU::I, true);
     uint16_t lo = cpu->bus->read(0xFFFE);
     uint16_t hi = cpu->bus->read(0xFFFF);
     cpu->pc = (hi << 8) | lo;
-    
+
     // Prevent infinite BRK loops by checking if we're jumping to unmapped memory
     if (cpu->pc == 0x0000 || (lo == 0x00 && hi == 0x00)) {
         // If interrupt vector is invalid, jump to a safe location
         cpu->pc = 0x8004; // Reset to ROM start + 4 to avoid infinite loop
     }
-    
+
     cpu->cycles = 7;
 }
 
@@ -858,7 +858,7 @@ void CPUInstructions::per(CPU* cpu) {
     uint16_t target = (cpu->pc + offset) & 0xFFFF;;
     CPUHelpers::push_16(cpu, target);
     cpu->cycles = 6;
-} 
+}
 
 // ADC - Add with Carry
 void CPUInstructions::adc_immediate(CPU* cpu) {
@@ -873,13 +873,13 @@ void CPUInstructions::adc_immediate(CPU* cpu) {
         operand = cpu->bus->read(cpu->pc++);
         cpu->cycles = 2;
     }
-    
+
     uint32_t result = cpu->a + operand + (cpu->get_flag(CPU::C) ? 1 : 0);
-    
+
     // Set flags
     cpu->set_flag(CPU::C, result > (is16 ? 0xFFFF : 0xFF));
     cpu->set_flag(CPU::V, ((cpu->a ^ result) & (operand ^ result) & (is16 ? 0x8000 : 0x80)) != 0);
-    
+
     if (is16) {
         cpu->a = result & 0xFFFF;
         cpu->setZN(cpu->a, true);
@@ -902,13 +902,13 @@ void CPUInstructions::adc_direct_page(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 3;
     }
-    
+
     uint32_t result = cpu->a + operand + (cpu->get_flag(CPU::C) ? 1 : 0);
-    
+
     // Set flags
     cpu->set_flag(CPU::C, result > (is16 ? 0xFFFF : 0xFF));
     cpu->set_flag(CPU::V, ((cpu->a ^ result) & (operand ^ result) & (is16 ? 0x8000 : 0x80)) != 0);
-    
+
     if (is16) {
         cpu->a = result & 0xFFFF;
         cpu->setZN(cpu->a, true);
@@ -931,13 +931,13 @@ void CPUInstructions::adc_direct_page_x(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 4;
     }
-    
+
     uint32_t result = cpu->a + operand + (cpu->get_flag(CPU::C) ? 1 : 0);
-    
+
     // Set flags
     cpu->set_flag(CPU::C, result > (is16 ? 0xFFFF : 0xFF));
     cpu->set_flag(CPU::V, ((cpu->a ^ result) & (operand ^ result) & (is16 ? 0x8000 : 0x80)) != 0);
-    
+
     if (is16) {
         cpu->a = result & 0xFFFF;
         cpu->setZN(cpu->a, true);
@@ -960,13 +960,13 @@ void CPUInstructions::adc_absolute(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 4;
     }
-    
+
     uint32_t result = cpu->a + operand + (cpu->get_flag(CPU::C) ? 1 : 0);
-    
+
     // Set flags
     cpu->set_flag(CPU::C, result > (is16 ? 0xFFFF : 0xFF));
     cpu->set_flag(CPU::V, ((cpu->a ^ result) & (operand ^ result) & (is16 ? 0x8000 : 0x80)) != 0);
-    
+
     if (is16) {
         cpu->a = result & 0xFFFF;
         cpu->setZN(cpu->a, true);
@@ -989,13 +989,13 @@ void CPUInstructions::adc_absolute_x(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 5;
     }
-    
+
     uint32_t result = cpu->a + operand + (cpu->get_flag(CPU::C) ? 1 : 0);
-    
+
     // Set flags
     cpu->set_flag(CPU::C, result > (is16 ? 0xFFFF : 0xFF));
     cpu->set_flag(CPU::V, ((cpu->a ^ result) & (operand ^ result) & (is16 ? 0x8000 : 0x80)) != 0);
-    
+
     if (is16) {
         cpu->a = result & 0xFFFF;
         cpu->setZN(cpu->a, true);
@@ -1018,13 +1018,13 @@ void CPUInstructions::adc_absolute_y(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 5;
     }
-    
+
     uint32_t result = cpu->a + operand + (cpu->get_flag(CPU::C) ? 1 : 0);
-    
+
     // Set flags
     cpu->set_flag(CPU::C, result > (is16 ? 0xFFFF : 0xFF));
     cpu->set_flag(CPU::V, ((cpu->a ^ result) & (operand ^ result) & (is16 ? 0x8000 : 0x80)) != 0);
-    
+
     if (is16) {
         cpu->a = result & 0xFFFF;
         cpu->setZN(cpu->a, true);
@@ -1047,13 +1047,13 @@ void CPUInstructions::adc_dp_indirect_x(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 6;
     }
-    
+
     uint32_t result = cpu->a + operand + (cpu->get_flag(CPU::C) ? 1 : 0);
-    
+
     // Set flags
     cpu->set_flag(CPU::C, result > (is16 ? 0xFFFF : 0xFF));
     cpu->set_flag(CPU::V, ((cpu->a ^ result) & (operand ^ result) & (is16 ? 0x8000 : 0x80)) != 0);
-    
+
     if (is16) {
         cpu->a = result & 0xFFFF;
         cpu->setZN(cpu->a, true);
@@ -1076,13 +1076,13 @@ void CPUInstructions::adc_dp_indirect_y(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 6;
     }
-    
+
     uint32_t result = cpu->a + operand + (cpu->get_flag(CPU::C) ? 1 : 0);
-    
+
     // Set flags
     cpu->set_flag(CPU::C, result > (is16 ? 0xFFFF : 0xFF));
     cpu->set_flag(CPU::V, ((cpu->a ^ result) & (operand ^ result) & (is16 ? 0x8000 : 0x80)) != 0);
-    
+
     if (is16) {
         cpu->a = result & 0xFFFF;
         cpu->setZN(cpu->a, true);
@@ -1105,13 +1105,13 @@ void CPUInstructions::adc_dp_indirect(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 5;
     }
-    
+
     uint32_t result = cpu->a + operand + (cpu->get_flag(CPU::C) ? 1 : 0);
-    
+
     // Set flags
     cpu->set_flag(CPU::C, result > (is16 ? 0xFFFF : 0xFF));
     cpu->set_flag(CPU::V, ((cpu->a ^ result) & (operand ^ result) & (is16 ? 0x8000 : 0x80)) != 0);
-    
+
     if (is16) {
         cpu->a = result & 0xFFFF;
         cpu->setZN(cpu->a, true);
@@ -1134,13 +1134,13 @@ void CPUInstructions::adc_dp_indirect_long(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 6;
     }
-    
+
     uint32_t result = cpu->a + operand + (cpu->get_flag(CPU::C) ? 1 : 0);
-    
+
     // Set flags
     cpu->set_flag(CPU::C, result > (is16 ? 0xFFFF : 0xFF));
     cpu->set_flag(CPU::V, ((cpu->a ^ result) & (operand ^ result) & (is16 ? 0x8000 : 0x80)) != 0);
-    
+
     if (is16) {
         cpu->a = result & 0xFFFF;
         cpu->setZN(cpu->a, true);
@@ -1163,13 +1163,13 @@ void CPUInstructions::adc_dp_indirect_long_y(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 7;
     }
-    
+
     uint32_t result = cpu->a + operand + (cpu->get_flag(CPU::C) ? 1 : 0);
-    
+
     // Set flags
     cpu->set_flag(CPU::C, result > (is16 ? 0xFFFF : 0xFF));
     cpu->set_flag(CPU::V, ((cpu->a ^ result) & (operand ^ result) & (is16 ? 0x8000 : 0x80)) != 0);
-    
+
     if (is16) {
         cpu->a = result & 0xFFFF;
         cpu->setZN(cpu->a, true);
@@ -1177,7 +1177,7 @@ void CPUInstructions::adc_dp_indirect_long_y(CPU* cpu) {
         cpu->a = (cpu->a & 0xFF00) | (result & 0xFF);
         cpu->setZN(cpu->a & 0xFF, false);
     }
-} 
+}
 
 // SBC - Subtract with Carry
 void CPUInstructions::sbc_immediate(CPU* cpu) {
@@ -1192,13 +1192,13 @@ void CPUInstructions::sbc_immediate(CPU* cpu) {
         operand = cpu->bus->read(cpu->pc++);
         cpu->cycles = 2;
     }
-    
+
     uint32_t result = cpu->a - operand - (cpu->get_flag(CPU::C) ? 0 : 1);
-    
+
     // Set flags
     cpu->set_flag(CPU::C, result <= (is16 ? 0xFFFF : 0xFF));
     cpu->set_flag(CPU::V, ((cpu->a ^ result) & (operand ^ result) & (is16 ? 0x8000 : 0x80)) != 0);
-    
+
     if (is16) {
         cpu->a = result & 0xFFFF;
         cpu->setZN(cpu->a, true);
@@ -1221,13 +1221,13 @@ void CPUInstructions::sbc_direct_page(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 3;
     }
-    
+
     uint32_t result = cpu->a - operand - (cpu->get_flag(CPU::C) ? 0 : 1);
-    
+
     // Set flags
     cpu->set_flag(CPU::C, result <= (is16 ? 0xFFFF : 0xFF));
     cpu->set_flag(CPU::V, ((cpu->a ^ result) & (operand ^ result) & (is16 ? 0x8000 : 0x80)) != 0);
-    
+
     if (is16) {
         cpu->a = result & 0xFFFF;
         cpu->setZN(cpu->a, true);
@@ -1250,13 +1250,13 @@ void CPUInstructions::sbc_direct_page_x(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 4;
     }
-    
+
     uint32_t result = cpu->a - operand - (cpu->get_flag(CPU::C) ? 0 : 1);
-    
+
     // Set flags
     cpu->set_flag(CPU::C, result <= (is16 ? 0xFFFF : 0xFF));
     cpu->set_flag(CPU::V, ((cpu->a ^ result) & (operand ^ result) & (is16 ? 0x8000 : 0x80)) != 0);
-    
+
     if (is16) {
         cpu->a = result & 0xFFFF;
         cpu->setZN(cpu->a, true);
@@ -1279,13 +1279,13 @@ void CPUInstructions::sbc_absolute(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 4;
     }
-    
+
     uint32_t result = cpu->a - operand - (cpu->get_flag(CPU::C) ? 0 : 1);
-    
+
     // Set flags
     cpu->set_flag(CPU::C, result <= (is16 ? 0xFFFF : 0xFF));
     cpu->set_flag(CPU::V, ((cpu->a ^ result) & (operand ^ result) & (is16 ? 0x8000 : 0x80)) != 0);
-    
+
     if (is16) {
         cpu->a = result & 0xFFFF;
         cpu->setZN(cpu->a, true);
@@ -1308,13 +1308,13 @@ void CPUInstructions::sbc_absolute_x(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 5;
     }
-    
+
     uint32_t result = cpu->a - operand - (cpu->get_flag(CPU::C) ? 0 : 1);
-    
+
     // Set flags
     cpu->set_flag(CPU::C, result <= (is16 ? 0xFFFF : 0xFF));
     cpu->set_flag(CPU::V, ((cpu->a ^ result) & (operand ^ result) & (is16 ? 0x8000 : 0x80)) != 0);
-    
+
     if (is16) {
         cpu->a = result & 0xFFFF;
         cpu->setZN(cpu->a, true);
@@ -1337,13 +1337,13 @@ void CPUInstructions::sbc_absolute_y(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 5;
     }
-    
+
     uint32_t result = cpu->a - operand - (cpu->get_flag(CPU::C) ? 0 : 1);
-    
+
     // Set flags
     cpu->set_flag(CPU::C, result <= (is16 ? 0xFFFF : 0xFF));
     cpu->set_flag(CPU::V, ((cpu->a ^ result) & (operand ^ result) & (is16 ? 0x8000 : 0x80)) != 0);
-    
+
     if (is16) {
         cpu->a = result & 0xFFFF;
         cpu->setZN(cpu->a, true);
@@ -1366,13 +1366,13 @@ void CPUInstructions::sbc_dp_indirect_x(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 6;
     }
-    
+
     uint32_t result = cpu->a - operand - (cpu->get_flag(CPU::C) ? 0 : 1);
-    
+
     // Set flags
     cpu->set_flag(CPU::C, result <= (is16 ? 0xFFFF : 0xFF));
     cpu->set_flag(CPU::V, ((cpu->a ^ result) & (operand ^ result) & (is16 ? 0x8000 : 0x80)) != 0);
-    
+
     if (is16) {
         cpu->a = result & 0xFFFF;
         cpu->setZN(cpu->a, true);
@@ -1395,13 +1395,13 @@ void CPUInstructions::sbc_dp_indirect_y(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 6;
     }
-    
+
     uint32_t result = cpu->a - operand - (cpu->get_flag(CPU::C) ? 0 : 1);
-    
+
     // Set flags
     cpu->set_flag(CPU::C, result <= (is16 ? 0xFFFF : 0xFF));
     cpu->set_flag(CPU::V, ((cpu->a ^ result) & (operand ^ result) & (is16 ? 0x8000 : 0x80)) != 0);
-    
+
     if (is16) {
         cpu->a = result & 0xFFFF;
         cpu->setZN(cpu->a, true);
@@ -1424,13 +1424,13 @@ void CPUInstructions::sbc_dp_indirect(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 5;
     }
-    
+
     uint32_t result = cpu->a - operand - (cpu->get_flag(CPU::C) ? 0 : 1);
-    
+
     // Set flags
     cpu->set_flag(CPU::C, result <= (is16 ? 0xFFFF : 0xFF));
     cpu->set_flag(CPU::V, ((cpu->a ^ result) & (operand ^ result) & (is16 ? 0x8000 : 0x80)) != 0);
-    
+
     if (is16) {
         cpu->a = result & 0xFFFF;
         cpu->setZN(cpu->a, true);
@@ -1453,13 +1453,13 @@ void CPUInstructions::sbc_dp_indirect_long(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 6;
     }
-    
+
     uint32_t result = cpu->a - operand - (cpu->get_flag(CPU::C) ? 0 : 1);
-    
+
     // Set flags
     cpu->set_flag(CPU::C, result <= (is16 ? 0xFFFF : 0xFF));
     cpu->set_flag(CPU::V, ((cpu->a ^ result) & (operand ^ result) & (is16 ? 0x8000 : 0x80)) != 0);
-    
+
     if (is16) {
         cpu->a = result & 0xFFFF;
         cpu->setZN(cpu->a, true);
@@ -1482,13 +1482,13 @@ void CPUInstructions::sbc_dp_indirect_long_y(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 7;
     }
-    
+
     uint32_t result = cpu->a - operand - (cpu->get_flag(CPU::C) ? 0 : 1);
-    
+
     // Set flags
     cpu->set_flag(CPU::C, result <= (is16 ? 0xFFFF : 0xFF));
     cpu->set_flag(CPU::V, ((cpu->a ^ result) & (operand ^ result) & (is16 ? 0x8000 : 0x80)) != 0);
-    
+
     if (is16) {
         cpu->a = result & 0xFFFF;
         cpu->setZN(cpu->a, true);
@@ -1496,7 +1496,7 @@ void CPUInstructions::sbc_dp_indirect_long_y(CPU* cpu) {
         cpu->a = (cpu->a & 0xFF00) | (result & 0xFF);
         cpu->setZN(cpu->a & 0xFF, false);
     }
-} 
+}
 
 // INC - Increment
 void CPUInstructions::inc_accumulator(CPU* cpu) {
@@ -1620,7 +1620,7 @@ void CPUInstructions::iny(CPU* cpu) {
         cpu->setZN(low_byte, false);
     }
     cpu->cycles = 2;
-} 
+}
 
 // DEC - Decrement
 void CPUInstructions::dec_accumulator(CPU* cpu) {
@@ -1759,7 +1759,7 @@ void CPUInstructions::cmp_immediate(CPU* cpu) {
         operand = cpu->bus->read(cpu->pc++);
         cpu->cycles = 2;
     }
-    
+
     uint16_t result = cpu->a - operand;
     cpu->set_flag(CPU::C, cpu->a >= operand);
     cpu->setZN(result, is16);
@@ -1778,7 +1778,7 @@ void CPUInstructions::cmp_direct_page(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 3;
     }
-    
+
     uint16_t result = cpu->a - operand;
     cpu->set_flag(CPU::C, cpu->a >= operand);
     cpu->setZN(result, is16);
@@ -1797,7 +1797,7 @@ void CPUInstructions::cmp_direct_page_x(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 4;
     }
-    
+
     uint16_t result = cpu->a - operand;
     cpu->set_flag(CPU::C, cpu->a >= operand);
     cpu->setZN(result, is16);
@@ -1816,7 +1816,7 @@ void CPUInstructions::cmp_absolute(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 4;
     }
-    
+
     uint16_t result = cpu->a - operand;
     cpu->set_flag(CPU::C, cpu->a >= operand);
     cpu->setZN(result, is16);
@@ -1835,7 +1835,7 @@ void CPUInstructions::cmp_absolute_x(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 5;
     }
-    
+
     uint16_t result = cpu->a - operand;
     cpu->set_flag(CPU::C, cpu->a >= operand);
     cpu->setZN(result, is16);
@@ -1854,7 +1854,7 @@ void CPUInstructions::cmp_absolute_y(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 5;
     }
-    
+
     uint16_t result = cpu->a - operand;
     cpu->set_flag(CPU::C, cpu->a >= operand);
     cpu->setZN(result, is16);
@@ -1873,7 +1873,7 @@ void CPUInstructions::cmp_dp_indirect_x(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 6;
     }
-    
+
     uint16_t result = cpu->a - operand;
     cpu->set_flag(CPU::C, cpu->a >= operand);
     cpu->setZN(result, is16);
@@ -1892,7 +1892,7 @@ void CPUInstructions::cmp_dp_indirect_y(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 6;
     }
-    
+
     uint16_t result = cpu->a - operand;
     cpu->set_flag(CPU::C, cpu->a >= operand);
     cpu->setZN(result, is16);
@@ -1911,7 +1911,7 @@ void CPUInstructions::cmp_dp_indirect(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 5;
     }
-    
+
     uint16_t result = cpu->a - operand;
     cpu->set_flag(CPU::C, cpu->a >= operand);
     cpu->setZN(result, is16);
@@ -1930,7 +1930,7 @@ void CPUInstructions::cmp_dp_indirect_long(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 6;
     }
-    
+
     uint16_t result = cpu->a - operand;
     cpu->set_flag(CPU::C, cpu->a >= operand);
     cpu->setZN(result, is16);
@@ -1949,7 +1949,7 @@ void CPUInstructions::cmp_dp_indirect_long_y(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 7;
     }
-    
+
     uint16_t result = cpu->a - operand;
     cpu->set_flag(CPU::C, cpu->a >= operand);
     cpu->setZN(result, is16);
@@ -1968,7 +1968,7 @@ void CPUInstructions::cmp_absolute_long(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 5;
     }
-    
+
     uint16_t result = cpu->a - operand;
     cpu->set_flag(CPU::C, cpu->a >= operand);
     cpu->setZN(result, is16);
@@ -1987,7 +1987,7 @@ void CPUInstructions::cmp_absolute_long_x(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 5;
     }
-    
+
     uint16_t result = cpu->a - operand;
     cpu->set_flag(CPU::C, cpu->a >= operand);
     cpu->setZN(result, is16);
@@ -2006,7 +2006,7 @@ void CPUInstructions::cmp_stack_relative(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 4;
     }
-    
+
     uint16_t result = cpu->a - operand;
     cpu->set_flag(CPU::C, cpu->a >= operand);
     cpu->setZN(result, is16);
@@ -2025,7 +2025,7 @@ void CPUInstructions::cmp_stack_relative_indirect_y(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 7;
     }
-    
+
     uint16_t result = cpu->a - operand;
     cpu->set_flag(CPU::C, cpu->a >= operand);
     cpu->setZN(result, is16);
@@ -2044,7 +2044,7 @@ void CPUInstructions::cpx_immediate(CPU* cpu) {
         operand = cpu->bus->read(cpu->pc++);
         cpu->cycles = 2;
     }
-    
+
     uint16_t result = cpu->x - operand;
     cpu->set_flag(CPU::C, cpu->x >= operand);
     cpu->setZN(result, is16);
@@ -2063,7 +2063,7 @@ void CPUInstructions::cpx_direct_page(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 3;
     }
-    
+
     uint16_t result = cpu->x - operand;
     cpu->set_flag(CPU::C, cpu->x >= operand);
     cpu->setZN(result, is16);
@@ -2082,7 +2082,7 @@ void CPUInstructions::cpx_absolute(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 4;
     }
-    
+
     uint16_t result = cpu->x - operand;
     cpu->set_flag(CPU::C, cpu->x >= operand);
     cpu->setZN(result, is16);
@@ -2101,7 +2101,7 @@ void CPUInstructions::cpy_immediate(CPU* cpu) {
         operand = cpu->bus->read(cpu->pc++);
         cpu->cycles = 2;
     }
-    
+
     uint16_t result = cpu->y - operand;
     cpu->set_flag(CPU::C, cpu->y >= operand);
     cpu->setZN(result, is16);
@@ -2120,7 +2120,7 @@ void CPUInstructions::cpy_direct_page(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 3;
     }
-    
+
     uint16_t result = cpu->y - operand;
     cpu->set_flag(CPU::C, cpu->y >= operand);
     cpu->setZN(result, is16);
@@ -2139,7 +2139,7 @@ void CPUInstructions::cpy_absolute(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 4;
     }
-    
+
     uint16_t result = cpu->y - operand;
     cpu->set_flag(CPU::C, cpu->y >= operand);
     cpu->setZN(result, is16);
@@ -2158,7 +2158,7 @@ void CPUInstructions::and_immediate(CPU* cpu) {
         operand = cpu->bus->read(cpu->pc++);
         cpu->cycles = 2;
     }
-    
+
     cpu->a &= operand;
     cpu->setZN(cpu->a, is16);
 }
@@ -2176,7 +2176,7 @@ void CPUInstructions::and_direct_page(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 3;
     }
-    
+
     cpu->a &= operand;
     cpu->setZN(cpu->a, is16);
 }
@@ -2194,7 +2194,7 @@ void CPUInstructions::and_direct_page_x(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 4;
     }
-    
+
     cpu->a &= operand;
     cpu->setZN(cpu->a, is16);
 }
@@ -2212,7 +2212,7 @@ void CPUInstructions::and_absolute(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 4;
     }
-    
+
     cpu->a &= operand;
     cpu->setZN(cpu->a, is16);
 }
@@ -2230,7 +2230,7 @@ void CPUInstructions::and_absolute_x(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 5;
     }
-    
+
     cpu->a &= operand;
     cpu->setZN(cpu->a, is16);
 }
@@ -2248,7 +2248,7 @@ void CPUInstructions::and_absolute_y(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 5;
     }
-    
+
     cpu->a &= operand;
     cpu->setZN(cpu->a, is16);
 }
@@ -2266,7 +2266,7 @@ void CPUInstructions::and_dp_indirect_x(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 6;
     }
-    
+
     cpu->a &= operand;
     cpu->setZN(cpu->a, is16);
 }
@@ -2284,7 +2284,7 @@ void CPUInstructions::and_dp_indirect_y(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 6;
     }
-    
+
     cpu->a &= operand;
     cpu->setZN(cpu->a, is16);
 }
@@ -2302,7 +2302,7 @@ void CPUInstructions::and_dp_indirect(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 5;
     }
-    
+
     cpu->a &= operand;
     cpu->setZN(cpu->a, is16);
 }
@@ -2320,7 +2320,7 @@ void CPUInstructions::and_dp_indirect_long(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 6;
     }
-    
+
     cpu->a &= operand;
     cpu->setZN(cpu->a, is16);
 }
@@ -2338,7 +2338,7 @@ void CPUInstructions::and_dp_indirect_long_y(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 7;
     }
-    
+
     cpu->a &= operand;
     cpu->setZN(cpu->a, is16);
 }
@@ -2356,7 +2356,7 @@ void CPUInstructions::ora_immediate(CPU* cpu) {
         operand = cpu->bus->read(cpu->pc++);
         cpu->cycles = 2;
     }
-    
+
     cpu->a |= operand;
     cpu->setZN(cpu->a, is16);
 }
@@ -2374,7 +2374,7 @@ void CPUInstructions::ora_direct_page(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 3;
     }
-    
+
     cpu->a |= operand;
     cpu->setZN(cpu->a, is16);
 }
@@ -2392,7 +2392,7 @@ void CPUInstructions::ora_direct_page_x(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 4;
     }
-    
+
     cpu->a |= operand;
     cpu->setZN(cpu->a, is16);
 }
@@ -2410,7 +2410,7 @@ void CPUInstructions::ora_absolute(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 4;
     }
-    
+
     cpu->a |= operand;
     cpu->setZN(cpu->a, is16);
 }
@@ -2428,7 +2428,7 @@ void CPUInstructions::ora_absolute_x(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 5;
     }
-    
+
     cpu->a |= operand;
     cpu->setZN(cpu->a, is16);
 }
@@ -2446,7 +2446,7 @@ void CPUInstructions::ora_absolute_y(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 5;
     }
-    
+
     cpu->a |= operand;
     cpu->setZN(cpu->a, is16);
 }
@@ -2464,7 +2464,7 @@ void CPUInstructions::ora_dp_indirect_x(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 6;
     }
-    
+
     cpu->a |= operand;
     cpu->setZN(cpu->a, is16);
 }
@@ -2482,7 +2482,7 @@ void CPUInstructions::ora_dp_indirect_y(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 6;
     }
-    
+
     cpu->a |= operand;
     cpu->setZN(cpu->a, is16);
 }
@@ -2500,7 +2500,7 @@ void CPUInstructions::ora_dp_indirect(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 5;
     }
-    
+
     cpu->a |= operand;
     cpu->setZN(cpu->a, is16);
 }
@@ -2518,7 +2518,7 @@ void CPUInstructions::ora_dp_indirect_long(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 6;
     }
-    
+
     cpu->a |= operand;
     cpu->setZN(cpu->a, is16);
 }
@@ -2536,7 +2536,7 @@ void CPUInstructions::ora_dp_indirect_long_y(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 7;
     }
-    
+
     cpu->a |= operand;
     cpu->setZN(cpu->a, is16);
 }
@@ -2554,7 +2554,7 @@ void CPUInstructions::eor_immediate(CPU* cpu) {
         operand = cpu->bus->read(cpu->pc++);
         cpu->cycles = 2;
     }
-    
+
     cpu->a ^= operand;
     cpu->setZN(cpu->a, is16);
 }
@@ -2572,7 +2572,7 @@ void CPUInstructions::eor_direct_page(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 3;
     }
-    
+
     cpu->a ^= operand;
     cpu->setZN(cpu->a, is16);
 }
@@ -2590,7 +2590,7 @@ void CPUInstructions::eor_direct_page_x(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 4;
     }
-    
+
     cpu->a ^= operand;
     cpu->setZN(cpu->a, is16);
 }
@@ -2608,7 +2608,7 @@ void CPUInstructions::eor_absolute(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 4;
     }
-    
+
     cpu->a ^= operand;
     cpu->setZN(cpu->a, is16);
 }
@@ -2626,7 +2626,7 @@ void CPUInstructions::eor_absolute_x(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 5;
     }
-    
+
     cpu->a ^= operand;
     cpu->setZN(cpu->a, is16);
 }
@@ -2644,7 +2644,7 @@ void CPUInstructions::eor_absolute_y(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 5;
     }
-    
+
     cpu->a ^= operand;
     cpu->setZN(cpu->a, is16);
 }
@@ -2662,7 +2662,7 @@ void CPUInstructions::eor_dp_indirect_x(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 6;
     }
-    
+
     cpu->a ^= operand;
     cpu->setZN(cpu->a, is16);
 }
@@ -2680,7 +2680,7 @@ void CPUInstructions::eor_dp_indirect_y(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 6;
     }
-    
+
     cpu->a ^= operand;
     cpu->setZN(cpu->a, is16);
 }
@@ -2698,7 +2698,7 @@ void CPUInstructions::eor_dp_indirect(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 5;
     }
-    
+
     cpu->a ^= operand;
     cpu->setZN(cpu->a, is16);
 }
@@ -2716,7 +2716,7 @@ void CPUInstructions::eor_dp_indirect_long(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 6;
     }
-    
+
     cpu->a ^= operand;
     cpu->setZN(cpu->a, is16);
 }
@@ -2734,7 +2734,7 @@ void CPUInstructions::eor_dp_indirect_long_y(CPU* cpu) {
         operand = cpu->bus->read(addr);
         cpu->cycles = 7;
     }
-    
+
     cpu->a ^= operand;
     cpu->setZN(cpu->a, is16);
 }
@@ -3172,19 +3172,19 @@ void CPUInstructions::bit_absolute_x(CPU* cpu) {
 void CPUInstructions::mvp(CPU* cpu) {
     uint8_t src_bank = cpu->bus->read(cpu->pc++);
     uint8_t dst_bank = cpu->bus->read(cpu->pc++);
-    
+
     // Move one byte from source to destination
     uint32_t src_addr = ((uint32_t)src_bank << 16) | cpu->x;
     uint32_t dst_addr = ((uint32_t)dst_bank << 16) | cpu->y;
-    
+
     uint8_t value = cpu->bus->read(src_addr);
     cpu->bus->write(dst_addr, value);
-    
+
     // Decrement counters
     cpu->x--;
     cpu->y--;
     cpu->a--;
-    
+
     // If A is not 0xFFFF, repeat the instruction
     if (cpu->a != 0xFFFF) {
         cpu->pc -= 3; // Repeat instruction
@@ -3197,19 +3197,19 @@ void CPUInstructions::mvp(CPU* cpu) {
 void CPUInstructions::mvn(CPU* cpu) {
     uint8_t src_bank = cpu->bus->read(cpu->pc++);
     uint8_t dst_bank = cpu->bus->read(cpu->pc++);
-    
+
     // Move one byte from source to destination
     uint32_t src_addr = ((uint32_t)src_bank << 16) | cpu->x;
     uint32_t dst_addr = ((uint32_t)dst_bank << 16) | cpu->y;
-    
+
     uint8_t value = cpu->bus->read(src_addr);
     cpu->bus->write(dst_addr, value);
-    
+
     // Increment counters
     cpu->x++;
     cpu->y++;
     cpu->a--;
-    
+
     // If A is not 0xFFFF, repeat the instruction
     if (cpu->a != 0xFFFF) {
         cpu->pc -= 3; // Repeat instruction

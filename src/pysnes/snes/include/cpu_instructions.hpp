@@ -22,7 +22,7 @@ public:
     static void rti(CPU* cpu);
     static void wai(CPU* cpu);
     static void stp(CPU* cpu);
-    
+
     // Flag Instructions
     static void sei(CPU* cpu);
     static void cli(CPU* cpu);
@@ -32,7 +32,7 @@ public:
     static void cld(CPU* cpu);
     static void clv(CPU* cpu);
     static void xce(CPU* cpu);
-    
+
     // Load Instructions
     static void lda_immediate(CPU* cpu);
     static void lda_direct_page(CPU* cpu);
@@ -49,7 +49,7 @@ public:
     static void lda_absolute_long_x(CPU* cpu);
     static void lda_stack_relative(CPU* cpu);
     static void lda_stack_relative_indirect_y(CPU* cpu);
-    
+
     // Store Instructions
     static void sta_direct_page(CPU* cpu);
     static void sta_direct_page_x(CPU* cpu);
@@ -65,7 +65,7 @@ public:
     static void sta_absolute_long_x(CPU* cpu);
     static void sta_stack_relative(CPU* cpu);
     static void sta_stack_relative_indirect_y(CPU* cpu);
-    
+
     // Transfer Instructions
     static void tax(CPU* cpu);
     static void txa(CPU* cpu);
@@ -80,7 +80,7 @@ public:
     static void tsc(CPU* cpu);
     static void tcs(CPU* cpu);
     static void xba(CPU* cpu);
-    
+
     // Stack Instructions
     static void pha(CPU* cpu);
     static void pla(CPU* cpu);
@@ -97,7 +97,7 @@ public:
     static void pea(CPU* cpu);
     static void pei(CPU* cpu);
     static void per(CPU* cpu);
-    
+
     // Arithmetic Instructions
     static void adc_immediate(CPU* cpu);
     static void adc_direct_page(CPU* cpu);
@@ -110,7 +110,7 @@ public:
     static void adc_dp_indirect(CPU* cpu);
     static void adc_dp_indirect_long(CPU* cpu);
     static void adc_dp_indirect_long_y(CPU* cpu);
-    
+
     static void sbc_immediate(CPU* cpu);
     static void sbc_direct_page(CPU* cpu);
     static void sbc_direct_page_x(CPU* cpu);
@@ -122,7 +122,7 @@ public:
     static void sbc_dp_indirect(CPU* cpu);
     static void sbc_dp_indirect_long(CPU* cpu);
     static void sbc_dp_indirect_long_y(CPU* cpu);
-    
+
     // Comparison Instructions
     static void cmp_immediate(CPU* cpu);
     static void cmp_direct_page(CPU* cpu);
@@ -139,15 +139,15 @@ public:
     static void cmp_absolute_long_x(CPU* cpu);
     static void cmp_stack_relative(CPU* cpu);
     static void cmp_stack_relative_indirect_y(CPU* cpu);
-    
+
     static void cpx_immediate(CPU* cpu);
     static void cpx_direct_page(CPU* cpu);
     static void cpx_absolute(CPU* cpu);
-    
+
     static void cpy_immediate(CPU* cpu);
     static void cpy_direct_page(CPU* cpu);
     static void cpy_absolute(CPU* cpu);
-    
+
     // Logical Instructions
     static void and_immediate(CPU* cpu);
     static void and_direct_page(CPU* cpu);
@@ -160,7 +160,7 @@ public:
     static void and_dp_indirect(CPU* cpu);
     static void and_dp_indirect_long(CPU* cpu);
     static void and_dp_indirect_long_y(CPU* cpu);
-    
+
     static void ora_immediate(CPU* cpu);
     static void ora_direct_page(CPU* cpu);
     static void ora_direct_page_x(CPU* cpu);
@@ -172,7 +172,7 @@ public:
     static void ora_dp_indirect(CPU* cpu);
     static void ora_dp_indirect_long(CPU* cpu);
     static void ora_dp_indirect_long_y(CPU* cpu);
-    
+
     static void eor_immediate(CPU* cpu);
     static void eor_direct_page(CPU* cpu);
     static void eor_direct_page_x(CPU* cpu);
@@ -184,32 +184,32 @@ public:
     static void eor_dp_indirect(CPU* cpu);
     static void eor_dp_indirect_long(CPU* cpu);
     static void eor_dp_indirect_long_y(CPU* cpu);
-    
+
     // Shift Instructions
     static void asl_accumulator(CPU* cpu);
     static void asl_direct_page(CPU* cpu);
     static void asl_direct_page_x(CPU* cpu);
     static void asl_absolute(CPU* cpu);
     static void asl_absolute_x(CPU* cpu);
-    
+
     static void lsr_accumulator(CPU* cpu);
     static void lsr_direct_page(CPU* cpu);
     static void lsr_direct_page_x(CPU* cpu);
     static void lsr_absolute(CPU* cpu);
     static void lsr_absolute_x(CPU* cpu);
-    
+
     static void rol_accumulator(CPU* cpu);
     static void rol_direct_page(CPU* cpu);
     static void rol_direct_page_x(CPU* cpu);
     static void rol_absolute(CPU* cpu);
     static void rol_absolute_x(CPU* cpu);
-    
+
     static void ror_accumulator(CPU* cpu);
     static void ror_direct_page(CPU* cpu);
     static void ror_direct_page_x(CPU* cpu);
     static void ror_absolute(CPU* cpu);
     static void ror_absolute_x(CPU* cpu);
-    
+
     // Branch Instructions
     static void bcc(CPU* cpu);
     static void bcs(CPU* cpu);
@@ -221,7 +221,7 @@ public:
     static void bvc(CPU* cpu);
     static void bvs(CPU* cpu);
     static void brl(CPU* cpu);
-    
+
     // Increment/Decrement Instructions
     static void inc_accumulator(CPU* cpu);
     static void inc_direct_page(CPU* cpu);
@@ -230,7 +230,7 @@ public:
     static void inc_absolute_x(CPU* cpu);
     static void inx(CPU* cpu);
     static void iny(CPU* cpu);
-    
+
     static void dec_accumulator(CPU* cpu);
     static void dec_direct_page(CPU* cpu);
     static void dec_direct_page_x(CPU* cpu);
@@ -238,7 +238,7 @@ public:
     static void dec_absolute_x(CPU* cpu);
     static void dex(CPU* cpu);
     static void dey(CPU* cpu);
-    
+
     // Bit Instructions
     static void bit_immediate(CPU* cpu);
     static void bit_direct_page(CPU* cpu);
@@ -248,8 +248,8 @@ public:
     static void trb_absolute(CPU* cpu);
     static void tsb_direct_page(CPU* cpu);
     static void tsb_absolute(CPU* cpu);
-    
+
     // Block Move Instructions
     static void mvp(CPU* cpu);
     static void mvn(CPU* cpu);
-}; 
+};

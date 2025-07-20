@@ -45,7 +45,7 @@ public:
         N = (1 << 7),           // Negative
         E = (1 << 8)            // Emulation flag
     };
-    
+
     void set_flag(FLAGS f, bool v);
     bool get_flag(FLAGS f) const;
 

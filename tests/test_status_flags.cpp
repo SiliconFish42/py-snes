@@ -346,35 +346,35 @@ TEST_F(StatusFlagTest, CMP_StackRelativeIndirectY) {
 TEST_F(StatusFlagTest, MultipleFlagOperations) {
     cpu->reset();
     cpu->pc = 0x7E0000;
-    
+
     // Set all flags initially
     cpu->set_flag(CPU::C, true);
     cpu->set_flag(CPU::D, true);
     cpu->set_flag(CPU::I, true);
     cpu->set_flag(CPU::V, true);
-    
+
     // Clear all flags
     bus->write(cpu->pc, 0x18); // CLC
     bus->write(cpu->pc + 1, 0xD8); // CLD
     bus->write(cpu->pc + 2, 0x58); // CLI
     bus->write(cpu->pc + 3, 0xB8); // CLV
-    
+
     cpu->step(); // CLC
     EXPECT_FALSE(cpu->get_flag(CPU::C));
     EXPECT_EQ(cpu->cycles, 2);
-    
+
     cpu->step(); // CLD
     EXPECT_FALSE(cpu->get_flag(CPU::D));
     EXPECT_EQ(cpu->cycles, 2);
-    
+
     cpu->step(); // CLI
     EXPECT_FALSE(cpu->get_flag(CPU::I));
     EXPECT_EQ(cpu->cycles, 2);
-    
+
     cpu->step(); // CLV
     EXPECT_FALSE(cpu->get_flag(CPU::V));
     EXPECT_EQ(cpu->cycles, 2);
-    
+
     EXPECT_EQ(cpu->pc, 0x7E0004);
 }
 
@@ -383,22 +383,22 @@ TEST_F(StatusFlagTest, FlagOperationsWithAccumulator) {
     cpu->reset();
     cpu->pc = 0x7E0000;
     cpu->a = 0x80;
-    
+
     // Set carry flag
     bus->write(cpu->pc, 0x38); // SEC
     bus->write(cpu->pc + 1, 0xC9); // CMP immediate
     bus->write(cpu->pc + 2, 0x80);
-    
+
     cpu->step(); // SEC
     EXPECT_TRUE(cpu->get_flag(CPU::C));
     EXPECT_EQ(cpu->cycles, 2);
-    
+
     cpu->step(); // CMP
     EXPECT_TRUE(cpu->get_flag(CPU::Z)); // Equal
     EXPECT_TRUE(cpu->get_flag(CPU::C)); // A >= M
     EXPECT_FALSE(cpu->get_flag(CPU::N)); // Result not negative
     EXPECT_EQ(cpu->cycles, 2);
-    
+
     EXPECT_EQ(cpu->pc, 0x7E0003);
 }
 
@@ -406,7 +406,7 @@ TEST_F(StatusFlagTest, FlagOperationsWithAccumulator) {
 TEST_F(StatusFlagTest, CMP_EdgeCases) {
     cpu->reset();
     cpu->pc = 0x7E0000;
-    
+
     // Test with zero values
     cpu->a = 0x00;
     bus->write(cpu->pc, 0xC9); // CMP immediate
@@ -416,7 +416,7 @@ TEST_F(StatusFlagTest, CMP_EdgeCases) {
     EXPECT_TRUE(cpu->get_flag(CPU::C));
     EXPECT_FALSE(cpu->get_flag(CPU::N));
     EXPECT_EQ(cpu->cycles, 2);
-    
+
     // Test with maximum values
     cpu->pc = 0x7E0000;
     cpu->a = 0xFF;
@@ -427,7 +427,7 @@ TEST_F(StatusFlagTest, CMP_EdgeCases) {
     EXPECT_TRUE(cpu->get_flag(CPU::C));
     EXPECT_FALSE(cpu->get_flag(CPU::N));
     EXPECT_EQ(cpu->cycles, 2);
-    
+
     // Test with negative comparison
     cpu->pc = 0x7E0000;
     cpu->a = 0x00;
@@ -438,4 +438,4 @@ TEST_F(StatusFlagTest, CMP_EdgeCases) {
     EXPECT_FALSE(cpu->get_flag(CPU::C));
     EXPECT_TRUE(cpu->get_flag(CPU::N));
     EXPECT_EQ(cpu->cycles, 2);
-} 
+}

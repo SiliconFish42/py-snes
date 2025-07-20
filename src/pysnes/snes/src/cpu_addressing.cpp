@@ -170,4 +170,4 @@ uint16_t CPUAddressing::block_move(CPU* cpu) {
     uint8_t src_bank = cpu->bus->read(cpu->pc++);
     uint8_t dst_bank = cpu->bus->read(cpu->pc++);
     return (dst_bank << 8) | src_bank;
-} 
+}

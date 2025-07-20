@@ -358,19 +358,19 @@ TEST_P(StackTest, StackOperations) {
     uint8_t opcode = params.opcode;
     uint8_t expected_cycles = is16 ? params.expected_cycles_16 : params.expected_cycles_8;
     uint32_t test_pc = 0x7E0000;
-    
+
     cpu->reset();
     cpu->pc = test_pc;
-    
+
     // Set accumulator/index size flags
-    if (is16) { 
-        cpu->p &= ~CPU::M; 
-        cpu->p &= ~CPU::X; 
-    } else { 
-        cpu->p |= CPU::M; 
-        cpu->p |= CPU::X; 
+    if (is16) {
+        cpu->p &= ~CPU::M;
+        cpu->p &= ~CPU::X;
+    } else {
+        cpu->p |= CPU::M;
+        cpu->p |= CPU::X;
     }
-    
+
     // Setup initial values
     cpu->a = is16 ? 0x1234 : 0x42;
     cpu->x = is16 ? 0x5678 : 0x84;
@@ -378,10 +378,10 @@ TEST_P(StackTest, StackOperations) {
     cpu->d = 0xDEAD;
     cpu->pb = 0x7E;
     cpu->stkp = 0x01FD;
-    
+
     // Write opcode
     bus->write(test_pc, opcode);
-    
+
     // Setup additional data for specific instructions
     if (params.instruction == "PEA") {
         bus->write(test_pc + 1, 0x34); // Low byte
@@ -394,13 +394,13 @@ TEST_P(StackTest, StackOperations) {
         bus->write(test_pc + 1, 0xFE); // Relative offset low
         bus->write(test_pc + 2, 0xFF); // Relative offset high (-2)
     }
-    
+
     // Execute instruction
     cpu->step();
-    
+
     // Verify cycles
     EXPECT_EQ(cpu->cycles, expected_cycles) << "Instruction: " << params.instruction << " (16-bit: " << is16 << ")";
-    
+
     // Verify stack operations
     if (params.instruction == "PHA") {
         if (is16) {
@@ -419,21 +419,21 @@ TEST_P(StackTest, StackOperations) {
         } else {
             bus->write(0x01FC, 0x42);
         }
-        
+
         // Reset and execute PLA
         cpu->reset();
         cpu->pc = test_pc;
         cpu->connect_bus(bus);
-        if (is16) { 
-            cpu->p &= ~CPU::M; 
+        if (is16) {
+            cpu->p &= ~CPU::M;
             cpu->stkp = 0x01FB; // Set stack pointer after reset
-        } else { 
-            cpu->p |= CPU::M; 
+        } else {
+            cpu->p |= CPU::M;
             cpu->stkp = 0x01FC; // Set stack pointer after reset
         }
         bus->write(test_pc, opcode);
         cpu->step();
-        
+
         if (is16) {
             EXPECT_EQ(cpu->a, 0x1234);
             EXPECT_EQ(cpu->stkp, 0x01FD);
@@ -458,21 +458,21 @@ TEST_P(StackTest, StackOperations) {
         } else {
             bus->write(0x01FC, 0x84);
         }
-        
+
         // Reset and execute PLX
         cpu->reset();
         cpu->pc = test_pc;
         cpu->connect_bus(bus);
-        if (is16) { 
-            cpu->p &= ~CPU::X; 
+        if (is16) {
+            cpu->p &= ~CPU::X;
             cpu->stkp = 0x01FB; // Set stack pointer after reset
-        } else { 
-            cpu->p |= CPU::X; 
+        } else {
+            cpu->p |= CPU::X;
             cpu->stkp = 0x01FC; // Set stack pointer after reset
         }
         bus->write(test_pc, opcode);
         cpu->step();
-        
+
         if (is16) {
             EXPECT_EQ(cpu->x, 0x5678);
             EXPECT_EQ(cpu->stkp, 0x01FD);
@@ -497,21 +497,21 @@ TEST_P(StackTest, StackOperations) {
         } else {
             bus->write(0x01FC, 0xC6);
         }
-        
+
         // Reset and execute PLY
         cpu->reset();
         cpu->pc = test_pc;
         cpu->connect_bus(bus);
-        if (is16) { 
-            cpu->p &= ~CPU::X; 
+        if (is16) {
+            cpu->p &= ~CPU::X;
             cpu->stkp = 0x01FB; // Set stack pointer after reset
-        } else { 
-            cpu->p |= CPU::X; 
+        } else {
+            cpu->p |= CPU::X;
             cpu->stkp = 0x01FC; // Set stack pointer after reset
         }
         bus->write(test_pc, opcode);
         cpu->step();
-        
+
         if (is16) {
             EXPECT_EQ(cpu->y, 0x9ABC);
             EXPECT_EQ(cpu->stkp, 0x01FD);
@@ -525,7 +525,7 @@ TEST_P(StackTest, StackOperations) {
     } else if (params.instruction == "PLP") {
         // Setup stack data
         bus->write(0x01FC, 0x34);
-        
+
         // Reset and execute PLP
         cpu->reset();
         cpu->pc = test_pc;
@@ -533,7 +533,7 @@ TEST_P(StackTest, StackOperations) {
         cpu->stkp = 0x01FC; // Set stack pointer after reset
         bus->write(test_pc, opcode);
         cpu->step();
-        
+
         EXPECT_EQ(cpu->p & 0xFF, 0x34);
         EXPECT_EQ(cpu->stkp, 0x01FD);
     } else if (params.instruction == "PHD") {
@@ -544,7 +544,7 @@ TEST_P(StackTest, StackOperations) {
         // Setup stack data
         bus->write(0x01FC, 0xDE);
         bus->write(0x01FB, 0xAD);
-        
+
         // Reset and execute PLD
         cpu->reset();
         cpu->pc = test_pc;
@@ -552,7 +552,7 @@ TEST_P(StackTest, StackOperations) {
         cpu->stkp = 0x01FB; // Set stack pointer after reset
         bus->write(test_pc, opcode);
         cpu->step();
-        
+
         EXPECT_EQ(cpu->d, 0xDEAD);
         EXPECT_EQ(cpu->stkp, 0x01FD);
     } else if (params.instruction == "PHK") {
@@ -561,7 +561,7 @@ TEST_P(StackTest, StackOperations) {
     } else if (params.instruction == "PLK") {
         // Setup stack data
         bus->write(0x01FC, 0x7E);
-        
+
         // Reset and execute PLK
         cpu->reset();
         cpu->pc = test_pc;
@@ -569,7 +569,7 @@ TEST_P(StackTest, StackOperations) {
         cpu->stkp = 0x01FC; // Set stack pointer after reset
         bus->write(test_pc, opcode);
         cpu->step();
-        
+
         EXPECT_EQ(cpu->pb, 0x7E);
         EXPECT_EQ(cpu->stkp, 0x01FD);
     } else if (params.instruction == "PEA") {
@@ -586,7 +586,7 @@ TEST_P(StackTest, StackOperations) {
         // Setup relative address data (-2 as 16-bit little-endian)
         bus->write(test_pc + 1, 0xFE); // Low byte of -2
         bus->write(test_pc + 2, 0xFF); // High byte of -2 (sign-extended)
-        
+
         // Calculate expected target (PC + 2 + (-2) = PC, where PC is after reading opcode)
         uint16_t expected_target = (test_pc + 1) & 0xFFFF; // PC after reading opcode
         EXPECT_EQ(bus->read(0x01FC), (expected_target >> 8) & 0xFF);
@@ -656,7 +656,7 @@ TEST_F(CPUHelpersStackTest, Pop8_WrapsFrom01FFTo0100) {
 TEST_F(CPUHelpersStackTest, Push16_WrapsCorrectlyAt0100) {
     cpu->stkp = 0x0100;
     CPUHelpers::push_16(cpu.get(), 0xBEEF);
-    // push_16 does high then low: push_8 (0xBE), push_8 (0xEF) 
+    // push_16 does high then low: push_8 (0xBE), push_8 (0xEF)
     EXPECT_EQ(cpu->stkp, 0x01FE);
     EXPECT_EQ(bus->read(0x01FF), 0xBE);
     EXPECT_EQ(bus->read(0x01FE), 0xEF);
