@@ -7,25 +7,25 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Find the necessary packages for the main library
-# find_package(pybind11 REQUIRED)
-# find_package(Python COMPONENTS Interpreter Development REQUIRED)
+find_package(pybind11 REQUIRED)
+find_package(Python COMPONENTS Interpreter Development REQUIRED)
 
 # Define our Python extension module (commented out for now)
-# pybind11_add_module(pysnes_cpp
-#     src/pysnes/bindings.cpp
-#     src/pysnes/snes/src/snes.cpp
-#     src/pysnes/snes/src/cpu.cpp
-#     src/pysnes/snes/src/ppu.cpp
-#     src/pysnes/snes/src/bus.cpp
-#     src/pysnes/snes/src/cartridge.cpp
-#     src/pysnes/snes/src/controller.cpp
-# )
+pybind11_add_module(pysnes_cpp
+    src/pysnes/bindings.cpp
+    src/pysnes/snes/src/snes.cpp
+    src/pysnes/snes/src/cpu.cpp
+    src/pysnes/snes/src/ppu.cpp
+    src/pysnes/snes/src/bus.cpp
+    src/pysnes/snes/src/cartridge.cpp
+    src/pysnes/snes/src/controller.cpp
+)
 
 # Add our local include directory
-# target_include_directories(pysnes_cpp PRIVATE src/pysnes/snes/include)
+target_include_directories(pysnes_cpp PRIVATE src/pysnes/snes/include)
 
 # Install the final compiled library into the 'pysnes' package directory.
-# install(TARGETS pysnes_cpp DESTINATION pysnes)
+install(TARGETS pysnes_cpp DESTINATION pysnes)
 
 
 # --------------------- TESTING SETUP (FetchContent Method) --------------------
@@ -104,10 +104,10 @@ add_custom_target(
 )
 
 add_dependencies(check run_tests)
-# add_dependencies(pysnes_cpp check)
+add_dependencies(pysnes_cpp check)
 
 option(CODE_COVERAGE "Enable coverage reporting" ON)
-if(CODE_COVERAGE)
+if((CODE_COVERAGE) AND (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-instr-generate -fcoverage-mapping")
   # Set profiling output directory to build directory to prevent .profraw files in root
   set_target_properties(run_tests PROPERTIES

@@ -50,11 +50,11 @@ std::vector<uint32_t>& SNES::get_screen() {
     // PPU framebuffer is uint8_t, but API expects uint32_t. Cast for now.
     // This will need a real conversion for a real emulator.
     static std::vector<uint32_t> fake_screen;
-    auto& fb = pimpl->ppu->get_screen();
-    fake_screen.resize(fb.size() / 3);
-    for (size_t i = 0; i < fake_screen.size(); ++i) {
-        fake_screen[i] = (fb[i*3] << 16) | (fb[i*3+1] << 8) | fb[i*3+2];
-    }
+    // auto& fb = pimpl->ppu->get_screen();
+    // fake_screen.resize(fb.size() / 3);
+    // for (size_t i = 0; i < fake_screen.size(); ++i) {
+    //     fake_screen[i] = (fb[i*3] << 16) | (fb[i*3+1] << 8) | fb[i*3+2];
+    // }
     return fake_screen;
 }
 
