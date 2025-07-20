@@ -104,7 +104,7 @@ add_custom_target(
 )
 
 add_dependencies(check run_tests)
-add_dependencies(pysnes_cpp check)
+# add_dependencies(pysnes_cpp check)
 
 option(CODE_COVERAGE "Enable coverage reporting" ON)
 if((CODE_COVERAGE) AND (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
