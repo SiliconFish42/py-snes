@@ -5,7 +5,7 @@
 class TestFrameworkTest : public ::testing::Test {
 protected:
     TestFramework framework;
-    
+
     void SetUp() override {
         // Framework is ready to use
     }
@@ -74,10 +74,10 @@ TEST_F(TestFrameworkTest, StringFindingInROM) {
         std::string test_data = "SUCCESS\0FAILED\0TEST\0";
         file.write(test_data.c_str(), test_data.length());
         file.close();
-        
+
         auto strings = TestUtils::find_strings_in_rom(temp_file);
         EXPECT_FALSE(strings.empty());
-        
+
         // Clean up
         std::filesystem::remove(temp_file);
     }
@@ -92,13 +92,13 @@ TEST_F(TestFrameworkTest, ROMDataExtraction) {
         std::vector<uint8_t> test_data = {0x01, 0x02, 0x03, 0x04, 0x05};
         file.write(reinterpret_cast<const char*>(test_data.data()), test_data.size());
         file.close();
-        
+
         auto extracted = TestUtils::extract_rom_data(temp_file, 0, 3);
         EXPECT_EQ(extracted.size(), 3);
         EXPECT_EQ(extracted[0], 0x01);
         EXPECT_EQ(extracted[1], 0x02);
         EXPECT_EQ(extracted[2], 0x03);
-        
+
         // Clean up
         std::filesystem::remove(temp_file);
     }
@@ -111,13 +111,13 @@ TEST_F(TestFrameworkTest, TestContextCreation) {
     EXPECT_EQ(context.max_cycles, 1000000);
     EXPECT_EQ(context.timeout_ms, 30000);
     EXPECT_FALSE(context.verbose_output);
-    
+
     // Modify context
     context.type = TestROMType::CPU_65816;
     context.max_cycles = 500000;
     context.timeout_ms = 15000;
     context.verbose_output = true;
-    
+
     EXPECT_EQ(context.type, TestROMType::CPU_65816);
     EXPECT_EQ(context.max_cycles, 500000);
     EXPECT_EQ(context.timeout_ms, 15000);
@@ -132,7 +132,7 @@ TEST_F(TestFrameworkTest, TestResultCreation) {
     EXPECT_EQ(result.execution_time_ms, 0);
     EXPECT_TRUE(result.error_message.empty());
     EXPECT_TRUE(result.log_messages.empty());
-    
+
     // Modify result
     result.status = TestStatus::PASSED;
     result.cycles_executed = 1000;
@@ -140,7 +140,7 @@ TEST_F(TestFrameworkTest, TestResultCreation) {
     result.error_message = "Test completed successfully";
     result.log_messages.push_back("Test started");
     result.log_messages.push_back("Test completed");
-    
+
     EXPECT_EQ(result.status, TestStatus::PASSED);
     EXPECT_EQ(result.cycles_executed, 1000);
     EXPECT_EQ(result.execution_time_ms, 50);
@@ -153,7 +153,7 @@ class TestFrameworkWithROMsTest : public ::testing::Test {
 protected:
     TestFramework framework;
     std::vector<std::string> available_roms;
-    
+
     void SetUp() override {
         // Check for available ROM files
         std::vector<std::string> possible_roms = {
@@ -162,7 +162,7 @@ protected:
             "../cputest-basic.sfc",
             "../cputest-full.sfc"
         };
-        
+
         for (const auto& rom : possible_roms) {
             if (std::filesystem::exists(rom)) {
                 available_roms.push_back(rom);
@@ -177,11 +177,11 @@ TEST_F(TestFrameworkWithROMsTest, ROMAnalysisWithRealFiles) {
         GTEST_SKIP() << "No test ROMs available for testing";
         return;
     }
-    
+
     std::ostringstream oss;
     bool result = TestUtils::analyze_rom_header(available_roms[0], oss);
     EXPECT_TRUE(result);
-    
+
     std::string analysis = oss.str();
     EXPECT_FALSE(analysis.empty());
     EXPECT_NE(analysis.find("ROM Analysis:"), std::string::npos);
@@ -193,11 +193,11 @@ TEST_F(TestFrameworkWithROMsTest, StringFindingWithRealROMs) {
         GTEST_SKIP() << "No test ROMs available for testing";
         return;
     }
-    
+
     auto strings = TestUtils::find_strings_in_rom(available_roms[0]);
     // Real ROMs should contain some strings
     EXPECT_FALSE(strings.empty());
-    
+
     // Print found strings for debugging
     std::cout << "Found " << strings.size() << " strings in " << available_roms[0] << ":\n";
     for (const auto& str : strings) {
@@ -213,7 +213,7 @@ TEST_F(TestFrameworkWithROMsTest, FrameworkExecutionWithRealROMs) {
         GTEST_SKIP() << "No test ROMs available for testing";
         return;
     }
-    
+
     // Create a test context
     TestContext context;
     context.rom_path = available_roms[0];
@@ -221,19 +221,19 @@ TEST_F(TestFrameworkWithROMsTest, FrameworkExecutionWithRealROMs) {
     context.max_cycles = 10000; // Limit cycles for quick test
     context.timeout_ms = 5000;  // 5 second timeout
     context.verbose_output = false;
-    
+
     // Run the test
     TestResult result = framework.run_single_test(available_roms[0], context);
-    
+
     // Basic validation
     EXPECT_NE(result.status, TestStatus::NOT_STARTED);
     EXPECT_GT(result.cycles_executed, 0);
     EXPECT_GT(result.execution_time_ms, 0);
-    
+
     std::cout << "Test result: " << TestUtils::test_status_to_string(result.status)
               << " (" << result.cycles_executed << " cycles, "
               << result.execution_time_ms << "ms)\n";
-    
+
     if (!result.error_message.empty()) {
         std::cout << "Error: " << result.error_message << "\n";
     }
@@ -245,29 +245,29 @@ TEST_F(TestFrameworkWithROMsTest, MultipleROMExecution) {
         GTEST_SKIP() << "Need at least 2 test ROMs for this test";
         return;
     }
-    
+
     // Create a test context
     TestContext context;
     context.max_cycles = 5000; // Limit cycles for quick test
     context.timeout_ms = 3000;  // 3 second timeout
     context.verbose_output = false;
-    
+
     // Run all tests
     std::vector<TestResult> results = framework.run_all_tests(available_roms, context);
-    
+
     // Validate results
     EXPECT_EQ(results.size(), available_roms.size());
-    
+
     for (size_t i = 0; i < results.size(); i++) {
         const auto& result = results[i];
         EXPECT_NE(result.status, TestStatus::NOT_STARTED);
         EXPECT_GT(result.cycles_executed, 0);
-        
+
         std::cout << "ROM " << (i + 1) << " (" << available_roms[i] << "): "
                   << TestUtils::test_status_to_string(result.status)
                   << " (" << result.cycles_executed << " cycles)\n";
     }
-    
+
     // Print summary
     framework.print_results(results);
-} 
+}

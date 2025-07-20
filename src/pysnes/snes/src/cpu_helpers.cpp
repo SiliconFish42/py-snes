@@ -103,15 +103,15 @@ void CPUHelpers::handle_interrupt(CPU* cpu, uint16_t vector_low, uint16_t vector
     // Push processor status and return address
     push_16(cpu, cpu->pc);
     push_8(cpu, cpu->p & 0xFF);
-    
+
     // Set interrupt disable flag
     cpu->set_flag(CPU::I, true);
-    
+
     // Jump to interrupt vector
     uint16_t lo = cpu->bus->read(vector_low);
     uint16_t hi = cpu->bus->read(vector_high);
     cpu->pc = (hi << 8) | lo;
-    
+
     // Prevent infinite loops by checking if we're jumping to unmapped memory
     if (cpu->pc == 0x0000 || (lo == 0x00 && hi == 0x00)) {
         // If interrupt vector is invalid, jump to a safe location
@@ -131,7 +131,7 @@ void CPUHelpers::handle_reset(CPU* cpu) {
     uint16_t lo = cpu->bus->read(0xFFFC);
     uint16_t hi = cpu->bus->read(0xFFFD);
     cpu->pc = (hi << 8) | lo;
-    
+
     // Prevent infinite loops
     if (cpu->pc == 0x0000 || (lo == 0x00 && hi == 0x00)) {
         cpu->pc = 0x8000;
@@ -148,4 +148,4 @@ void CPUHelpers::add_page_cross_penalty(CPU* cpu, uint32_t old_addr, uint32_t ne
     if ((old_addr & 0xFF00) != (new_addr & 0xFF00)) {
         cpu->cycles++;
     }
-} 
+}

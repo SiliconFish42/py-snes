@@ -32,7 +32,7 @@ void CPU::reset() {
     d = 0x0000;
     pb = 0x00;
     db = 0x00;
-    
+
     // Clear internal state
     addr_abs = 0;
     addr_rel = 0;
@@ -47,15 +47,15 @@ void CPU::step() {
         printf("ERROR: No bus connected to CPU\n");
         return;
     }
-    
+
     // Fetch opcode
     uint32_t full_addr = ((uint32_t)pb << 16) | pc;
     uint8_t opcode = bus->read(full_addr);
     pc++;
-    
+
     // Reset cycles for this instruction
     cycles = 0;
-    
+
     // Dispatch to appropriate instruction
     // This will be replaced with a function pointer table later
     switch (opcode) {
@@ -63,47 +63,47 @@ void CPU::step() {
         case 0x00:
             CPUInstructions::brk(this);
             break;
-            
+
         // NOP - No Operation
         case 0xEA:
             CPUInstructions::nop(this);
             break;
-            
+
         // SEI - Set Interrupt Disable
         case 0x78:
             CPUInstructions::sei(this);
             break;
-            
+
         // CLI - Clear Interrupt Disable
         case 0x58:
             CPUInstructions::cli(this);
             break;
-            
+
         // CLC - Clear Carry
         case 0x18:
             CPUInstructions::clc(this);
             break;
-            
+
         // SEC - Set Carry
         case 0x38:
             CPUInstructions::sec(this);
             break;
-            
+
         // CLD - Clear Decimal
         case 0xD8:
             CPUInstructions::cld(this);
             break;
-            
+
         // SED - Set Decimal
         case 0xF8:
             CPUInstructions::sed(this);
             break;
-            
+
         // CLV - Clear Overflow
         case 0xB8:
             CPUInstructions::clv(this);
             break;
-            
+
         // JMP - Jump Instructions
         case 0x4C: // JMP Absolute
             CPUInstructions::jmp_absolute(this);
@@ -120,7 +120,7 @@ void CPU::step() {
         case 0x7C: // JMP Indexed Indirect
             CPUInstructions::jmp_absolute_indirect_x(this);
             break;
-            
+
         // JSR - Jump to Subroutine
         case 0x20: // JSR Absolute
             CPUInstructions::jsr(this);
@@ -128,7 +128,7 @@ void CPU::step() {
         case 0x22: // JSR Absolute Long
             CPUInstructions::jsr_absolute_long(this);
             break;
-            
+
         // RTS/RTL - Return from Subroutine
         case 0x60: // RTS
             CPUInstructions::rts(this);
@@ -136,12 +136,12 @@ void CPU::step() {
         case 0x6B: // RTL
             CPUInstructions::rtl(this);
             break;
-            
+
         // RTI - Return from Interrupt
         case 0x40:
             CPUInstructions::rti(this);
             break;
-            
+
         // LDA - Load Accumulator
         case 0xA9: // Immediate
             CPUInstructions::lda_immediate(this);
@@ -188,7 +188,7 @@ void CPU::step() {
         case 0xB3: // Stack Relative Indirect, Y
             CPUInstructions::lda_stack_relative_indirect_y(this);
             break;
-            
+
         // STA - Store Accumulator
         case 0x85: // Direct Page
             CPUInstructions::sta_direct_page(this);
@@ -232,7 +232,7 @@ void CPU::step() {
         case 0x93: // Stack Relative Indirect, Y
             CPUInstructions::sta_stack_relative_indirect_y(this);
             break;
-            
+
         // Transfer Instructions
         case 0xAA: // TAX - Transfer Accumulator to X
             CPUInstructions::tax(this);
@@ -276,7 +276,7 @@ void CPU::step() {
         case 0xFB: // XCE - Exchange Carry and Emulation
             CPUInstructions::xce(this);
             break;
-            
+
         // Stack Instructions
         case 0x48: // PHA - Push Accumulator
             CPUInstructions::pha(this);
@@ -323,7 +323,7 @@ void CPU::step() {
         case 0x62: // PER - Push Effective PC Relative Address
             CPUInstructions::per(this);
             break;
-            
+
         // ADC - Add with Carry
         case 0x69: // Immediate
             CPUInstructions::adc_immediate(this);
@@ -358,7 +358,7 @@ void CPU::step() {
         case 0x77: // [Direct Page], Y
             CPUInstructions::adc_dp_indirect_long_y(this);
             break;
-            
+
         // SBC - Subtract with Carry
         case 0xE9: // Immediate
             CPUInstructions::sbc_immediate(this);
@@ -393,7 +393,7 @@ void CPU::step() {
         case 0xF7: // [Direct Page], Y
             CPUInstructions::sbc_dp_indirect_long_y(this);
             break;
-            
+
         // INC - Increment
         case 0x1A: // Accumulator
             CPUInstructions::inc_accumulator(this);
@@ -416,7 +416,7 @@ void CPU::step() {
         case 0xC8: // INY
             CPUInstructions::iny(this);
             break;
-            
+
         // DEC - Decrement
         case 0x3A: // Accumulator
             CPUInstructions::dec_accumulator(this);
@@ -439,7 +439,7 @@ void CPU::step() {
         case 0x88: // DEY
             CPUInstructions::dey(this);
             break;
-            
+
         // CMP - Compare Accumulator
         case 0xC9: // Immediate
             CPUInstructions::cmp_immediate(this);
@@ -486,7 +486,7 @@ void CPU::step() {
         case 0xD3: // Stack Relative Indirect, Y
             CPUInstructions::cmp_stack_relative_indirect_y(this);
             break;
-            
+
         // CPX - Compare X Register
         case 0xE0: // Immediate
             CPUInstructions::cpx_immediate(this);
@@ -497,7 +497,7 @@ void CPU::step() {
         case 0xEC: // Absolute
             CPUInstructions::cpx_absolute(this);
             break;
-            
+
         // CPY - Compare Y Register
         case 0xC0: // Immediate
             CPUInstructions::cpy_immediate(this);
@@ -508,7 +508,7 @@ void CPU::step() {
         case 0xCC: // Absolute
             CPUInstructions::cpy_absolute(this);
             break;
-            
+
         // AND - Logical AND
         case 0x29: // Immediate
             CPUInstructions::and_immediate(this);
@@ -543,7 +543,7 @@ void CPU::step() {
         case 0x37: // [Direct Page], Y
             CPUInstructions::and_dp_indirect_long_y(this);
             break;
-            
+
         // ORA - Logical OR
         case 0x09: // Immediate
             CPUInstructions::ora_immediate(this);
@@ -578,7 +578,7 @@ void CPU::step() {
         case 0x17: // [Direct Page], Y
             CPUInstructions::ora_dp_indirect_long_y(this);
             break;
-            
+
         // EOR - Logical XOR
         case 0x49: // Immediate
             CPUInstructions::eor_immediate(this);
@@ -613,7 +613,7 @@ void CPU::step() {
         case 0x57: // [Direct Page], Y
             CPUInstructions::eor_dp_indirect_long_y(this);
             break;
-            
+
         // Branch Instructions
         case 0x90: // BCC - Branch if Carry Clear
             CPUInstructions::bcc(this);
@@ -645,7 +645,7 @@ void CPU::step() {
         case 0x82: // BRL - Branch Always Long
             CPUInstructions::brl(this);
             break;
-            
+
         // Shift and Rotate Instructions
         // ASL - Arithmetic Shift Left
         case 0x0A: // Accumulator
@@ -663,7 +663,7 @@ void CPU::step() {
         case 0x1E: // Absolute, X
             CPUInstructions::asl_absolute_x(this);
             break;
-            
+
         // LSR - Logical Shift Right
         case 0x4A: // Accumulator
             CPUInstructions::lsr_accumulator(this);
@@ -680,7 +680,7 @@ void CPU::step() {
         case 0x5E: // Absolute, X
             CPUInstructions::lsr_absolute_x(this);
             break;
-            
+
         // ROL - Rotate Left
         case 0x2A: // Accumulator
             CPUInstructions::rol_accumulator(this);
@@ -697,7 +697,7 @@ void CPU::step() {
         case 0x3E: // Absolute, X
             CPUInstructions::rol_absolute_x(this);
             break;
-            
+
         // ROR - Rotate Right
         case 0x6A: // Accumulator
             CPUInstructions::ror_accumulator(this);
@@ -714,7 +714,7 @@ void CPU::step() {
         case 0x7E: // Absolute, X
             CPUInstructions::ror_absolute_x(this);
             break;
-            
+
         // Bit Instructions
         case 0x89: // Immediate
             CPUInstructions::bit_immediate(this);
@@ -728,7 +728,7 @@ void CPU::step() {
         case 0x3C: // Absolute, X
             CPUInstructions::bit_absolute_x(this);
             break;
-            
+
         // Block Move Instructions
         case 0x44: // MVP - Move Positive
             CPUInstructions::mvp(this);
@@ -736,7 +736,7 @@ void CPU::step() {
         case 0x54: // MVN - Move Negative
             CPUInstructions::mvn(this);
             break;
-            
+
         // Default case for unimplemented instructions
         default:
             cycles = 2; // Default cycle count

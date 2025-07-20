@@ -1,7 +1,9 @@
-import click
 import os
-from .env import SnesEnv
 import time
+
+import click
+
+from .env import SnesEnv
 
 
 @click.command()
