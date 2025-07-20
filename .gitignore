@@ -218,3 +218,46 @@ pyrightconfig.json
 Thumbs.db
 ehthumbs.db
 ehthumbs
+
+# VSCode
+.vscode
+
+# IntelliJ
+.idea
+
+### CMake ###
+CMakeLists.txt.user
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+Testing
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps
+
+### CMake Patch ###
+CMakeUserPresets.json
+
+# External projects
+*-prefix/
+
+# Test Framework
+test_output/
+test_report.*
+test_results.*
+*_test_results.xml
+*.profraw
+tests-basic.txt
+
+# Build artifacts and binaries
+run_tests
+*.exe
+*.out
+*.app
+build/
+dist/
+lib/
+bin/

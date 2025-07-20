@@ -1,250 +1,783 @@
-#include "cpu.hpp"
-#include "bus.hpp"
+#include "../include/cpu.hpp"
+#include "../include/cpu_addressing.hpp"
+#include "../include/cpu_instructions.hpp"
+#include "../include/cpu_helpers.hpp"
+#include "../include/bus.hpp"
+#include <cstdio>
 
-// The constructor is now empty as we no longer initialize the lookup table
-CPU::CPU() {}
-CPU::~CPU() {}
-
-void CPU::connect_bus(std::shared_ptr<Bus> b) { bus = b; }
-
-void CPU::power_on() {
+// Constructor
+CPU::CPU() {
     reset();
 }
 
-void CPU::step() {
-    opcode = bus->read(pc++);
-    cycles = 0; // Reset cycle count for the new instruction
+// Destructor
+CPU::~CPU() {
+    // Nothing to clean up
+}
 
-    // The giant switch statement handles dispatching.
-    // This is much simpler for the linker to understand.
+// Connect to bus
+void CPU::connect_bus(std::shared_ptr<Bus> b) {
+    bus = b;
+}
+
+// Reset CPU state
+void CPU::reset() {
+    // Initialize registers to known state
+    a = 0x0000;
+    x = 0x0000;
+    y = 0x0000;
+    stkp = 0x01FD;
+    pc = 0x8000;
+    p = 0x34;  // Set initial flags
+    d = 0x0000;
+    pb = 0x00;
+    db = 0x00;
+    
+    // Clear internal state
+    addr_abs = 0;
+    addr_rel = 0;
+    fetched = 0;
+    opcode = 0;
+    cycles = 0;
+}
+
+// Execute one instruction
+void CPU::step() {
+    if (!bus) {
+        printf("ERROR: No bus connected to CPU\n");
+        return;
+    }
+    
+    // Fetch opcode
+    uint32_t full_addr = ((uint32_t)pb << 16) | pc;
+    uint8_t opcode = bus->read(full_addr);
+    pc++;
+    
+    // Reset cycles for this instruction
+    cycles = 0;
+    
+    // Dispatch to appropriate instruction
+    // This will be replaced with a function pointer table later
     switch (opcode) {
-    case 0x00: BRK(); break;
-    case 0x01: IZX(); ORA(); break;
-    case 0x05: ZP0(); ORA(); break;
-    case 0x06: ZP0(); ASL(); break;
-    case 0x08: PHP(); break;
-    case 0x09: IMM(); ORA(); break;
-    case 0x0A: IMM(); ASL(); break;
-    case 0x0D: ABS(); ORA(); break;
-    case 0x0E: ABS(); ASL(); break;
-    case 0x10: REL(); BPL(); break;
-    case 0x11: IZY(); ORA(); break;
-    case 0x15: ZPX(); ORA(); break;
-    case 0x16: ZPX(); ASL(); break;
-    case 0x18: CLC(); break;
-    case 0x19: ABY(); ORA(); break;
-    case 0x1D: ABX(); ORA(); break;
-    case 0x1E: ABX(); ASL(); break;
-    case 0x20: ABS(); JSR(); break;
-    case 0x21: IZX(); AND(); break;
-    case 0x24: ZP0(); BIT(); break;
-    case 0x25: ZP0(); AND(); break;
-    case 0x26: ZP0(); ROL(); break;
-    case 0x28: PLP(); break;
-    case 0x29: IMM(); AND(); break;
-    case 0x2A: IMM(); ROL(); break;
-    case 0x2C: ABS(); BIT(); break;
-    case 0x2D: ABS(); AND(); break;
-    case 0x2E: ABS(); ROL(); break;
-    case 0x30: REL(); BMI(); break;
-    case 0x31: IZY(); AND(); break;
-    case 0x35: ZPX(); AND(); break;
-    case 0x36: ZPX(); ROL(); break;
-    case 0x38: SEC(); break;
-    case 0x39: ABY(); AND(); break;
-    case 0x3D: ABX(); AND(); break;
-    case 0x3E: ABX(); ROL(); break;
-    case 0x40: RTI(); break;
-    case 0x41: IZX(); EOR(); break;
-    case 0x45: ZP0(); EOR(); break;
-    case 0x46: ZP0(); LSR(); break;
-    case 0x48: PHA(); break;
-    case 0x49: IMM(); EOR(); break;
-    case 0x4A: IMM(); LSR(); break;
-    case 0x4C: ABS(); JMP(); break;
-    case 0x4D: ABS(); EOR(); break;
-    case 0x4E: ABS(); LSR(); break;
-    case 0x50: REL(); BVC(); break;
-    case 0x51: IZY(); EOR(); break;
-    case 0x55: ZPX(); EOR(); break;
-    case 0x56: ZPX(); LSR(); break;
-    case 0x58: CLI(); break;
-    case 0x59: ABY(); EOR(); break;
-    case 0x5D: ABX(); EOR(); break;
-    case 0x5E: ABX(); LSR(); break;
-    case 0x60: RTS(); break;
-    case 0x61: IZX(); ADC(); break;
-    case 0x65: ZP0(); ADC(); break;
-    case 0x66: ZP0(); ROR(); break;
-    case 0x68: PLA(); break;
-    case 0x69: IMM(); ADC(); break;
-    case 0x6A: IMM(); ROR(); break;
-    case 0x6C: IND(); JMP(); break;
-    case 0x6D: ABS(); ADC(); break;
-    case 0x6E: ABS(); ROR(); break;
-    case 0x70: REL(); BVS(); break;
-    case 0x71: IZY(); ADC(); break;
-    case 0x75: ZPX(); ADC(); break;
-    case 0x76: ZPX(); ROR(); break;
-    case 0x78: SEI(); break;
-    case 0x79: ABY(); ADC(); break;
-    case 0x7D: ABX(); ADC(); break;
-    case 0x7E: ABX(); ROR(); break;
-    case 0x81: IZX(); STA(); break;
-    case 0x84: ZP0(); STY(); break;
-    case 0x85: ZP0(); STA(); break;
-    case 0x86: ZP0(); STX(); break;
-    case 0x88: DEY(); break;
-    case 0x8A: TXA(); break;
-    case 0x8C: ABS(); STY(); break;
-    case 0x8D: ABS(); STA(); break;
-    case 0x8E: ABS(); STX(); break;
-    case 0x90: REL(); BCC(); break;
-    case 0x91: IZY(); STA(); break;
-    case 0x94: ZPX(); STY(); break;
-    case 0x95: ZPX(); STA(); break;
-    case 0x96: ZPY(); STX(); break;
-    case 0x98: TYA(); break;
-    case 0x99: ABY(); STA(); break;
-    case 0x9A: TXS(); break;
-    case 0x9D: ABX(); STA(); break;
-    case 0xA0: IMM(); LDY(); break;
-    case 0xA1: IZX(); LDA(); break;
-    case 0xA2: IMM(); LDX(); break;
-    case 0xA4: ZP0(); LDY(); break;
-    case 0xA5: ZP0(); LDA(); break;
-    case 0xA6: ZP0(); LDX(); break;
-    case 0xA8: TAY(); break;
-    case 0xA9: IMM(); LDA(); break;
-    case 0xAA: TAX(); break;
-    case 0xAC: ABS(); LDY(); break;
-    case 0xAD: ABS(); LDA(); break;
-    case 0xAE: ABS(); LDX(); break;
-    case 0xB0: REL(); BCS(); break;
-    case 0xB1: IZY(); LDA(); break;
-    case 0xB4: ZPX(); LDY(); break;
-    case 0xB5: ZPX(); LDA(); break;
-    case 0xB6: ZPY(); LDX(); break;
-    case 0xB8: CLV(); break;
-    case 0xB9: ABY(); LDA(); break;
-    case 0xBA: TSX(); break;
-    case 0xBC: ABX(); LDY(); break;
-    case 0xBD: ABX(); LDA(); break;
-    case 0xBE: ABY(); LDX(); break;
-    case 0xC0: IMM(); CPY(); break;
-    case 0xC1: IZX(); CMP(); break;
-    case 0xC4: ZP0(); CPY(); break;
-    case 0xC5: ZP0(); CMP(); break;
-    case 0xC6: ZP0(); DEC(); break;
-    case 0xC8: INY(); break;
-    case 0xC9: IMM(); CMP(); break;
-    case 0xCA: DEX(); break;
-    case 0xCC: ABS(); CPY(); break;
-    case 0xCD: ABS(); CMP(); break;
-    case 0xCE: ABS(); DEC(); break;
-    case 0xD0: REL(); BNE(); break;
-    case 0xD1: IZY(); CMP(); break;
-    case 0xD5: ZPX(); CMP(); break;
-    case 0xD6: ZPX(); DEC(); break;
-    case 0xD8: CLD(); break;
-    case 0xD9: ABY(); CMP(); break;
-    case 0xDD: ABX(); CMP(); break;
-    case 0xDE: ABX(); DEC(); break;
-    case 0xE0: IMM(); CPX(); break;
-    case 0xE1: IZX(); SBC(); break;
-    case 0xE4: ZP0(); CPX(); break;
-    case 0xE5: ZP0(); SBC(); break;
-    case 0xE6: ZP0(); INC(); break;
-    case 0xE8: INX(); break;
-    case 0xE9: IMM(); SBC(); break;
-    case 0xEA: NOP(); break;
-    case 0xEC: ABS(); CPX(); break;
-    case 0xED: ABS(); SBC(); break;
-    case 0xEE: ABS(); INC(); break;
-    case 0xF0: REL(); BEQ(); break;
-    case 0xF1: IZY(); SBC(); break;
-    case 0xF5: ZPX(); SBC(); break;
-    case 0xF6: ZPX(); INC(); break;
-    case 0xF8: SED(); break;
-    case 0xF9: ABY(); SBC(); break;
-    case 0xFD: ABX(); SBC(); break;
-    case 0xFE: ABX(); INC(); break;
-    default: XXX(); break; // Handle illegal opcodes
+        // BRK - Break
+        case 0x00:
+            CPUInstructions::brk(this);
+            break;
+            
+        // NOP - No Operation
+        case 0xEA:
+            CPUInstructions::nop(this);
+            break;
+            
+        // SEI - Set Interrupt Disable
+        case 0x78:
+            CPUInstructions::sei(this);
+            break;
+            
+        // CLI - Clear Interrupt Disable
+        case 0x58:
+            CPUInstructions::cli(this);
+            break;
+            
+        // CLC - Clear Carry
+        case 0x18:
+            CPUInstructions::clc(this);
+            break;
+            
+        // SEC - Set Carry
+        case 0x38:
+            CPUInstructions::sec(this);
+            break;
+            
+        // CLD - Clear Decimal
+        case 0xD8:
+            CPUInstructions::cld(this);
+            break;
+            
+        // SED - Set Decimal
+        case 0xF8:
+            CPUInstructions::sed(this);
+            break;
+            
+        // CLV - Clear Overflow
+        case 0xB8:
+            CPUInstructions::clv(this);
+            break;
+            
+        // JMP - Jump Instructions
+        case 0x4C: // JMP Absolute
+            CPUInstructions::jmp_absolute(this);
+            break;
+        case 0x5C: // JMP Absolute Long
+            CPUInstructions::jmp_absolute_long(this);
+            break;
+        case 0x6C: // JMP Indirect
+            CPUInstructions::jmp_absolute_indirect(this);
+            break;
+        case 0xDC: // JMP Indirect Long
+            CPUInstructions::jmp_absolute_indirect_long(this);
+            break;
+        case 0x7C: // JMP Indexed Indirect
+            CPUInstructions::jmp_absolute_indirect_x(this);
+            break;
+            
+        // JSR - Jump to Subroutine
+        case 0x20: // JSR Absolute
+            CPUInstructions::jsr(this);
+            break;
+        case 0x22: // JSR Absolute Long
+            CPUInstructions::jsr_absolute_long(this);
+            break;
+            
+        // RTS/RTL - Return from Subroutine
+        case 0x60: // RTS
+            CPUInstructions::rts(this);
+            break;
+        case 0x6B: // RTL
+            CPUInstructions::rtl(this);
+            break;
+            
+        // RTI - Return from Interrupt
+        case 0x40:
+            CPUInstructions::rti(this);
+            break;
+            
+        // LDA - Load Accumulator
+        case 0xA9: // Immediate
+            CPUInstructions::lda_immediate(this);
+            break;
+        case 0xA5: // Direct Page
+            CPUInstructions::lda_direct_page(this);
+            break;
+        case 0xB5: // Direct Page, X
+            CPUInstructions::lda_direct_page_x(this);
+            break;
+        case 0xAD: // Absolute
+            CPUInstructions::lda_absolute(this);
+            break;
+        case 0xBD: // Absolute, X
+            CPUInstructions::lda_absolute_x(this);
+            break;
+        case 0xB9: // Absolute, Y
+            CPUInstructions::lda_absolute_y(this);
+            break;
+        case 0xA1: // (Direct Page, X)
+            CPUInstructions::lda_dp_indirect_x(this);
+            break;
+        case 0xB1: // (Direct Page), Y
+            CPUInstructions::lda_dp_indirect_y(this);
+            break;
+        case 0xB2: // (Direct Page)
+            CPUInstructions::lda_dp_indirect(this);
+            break;
+        case 0xA7: // [Direct Page]
+            CPUInstructions::lda_dp_indirect_long(this);
+            break;
+        case 0xB7: // [Direct Page], Y
+            CPUInstructions::lda_dp_indirect_long_y(this);
+            break;
+        case 0xAF: // Absolute Long
+            CPUInstructions::lda_absolute_long(this);
+            break;
+        case 0xBF: // Absolute Long, X
+            CPUInstructions::lda_absolute_long_x(this);
+            break;
+        case 0xA3: // Stack Relative
+            CPUInstructions::lda_stack_relative(this);
+            break;
+        case 0xB3: // Stack Relative Indirect, Y
+            CPUInstructions::lda_stack_relative_indirect_y(this);
+            break;
+            
+        // STA - Store Accumulator
+        case 0x85: // Direct Page
+            CPUInstructions::sta_direct_page(this);
+            break;
+        case 0x95: // Direct Page, X
+            CPUInstructions::sta_direct_page_x(this);
+            break;
+        case 0x8D: // Absolute
+            CPUInstructions::sta_absolute(this);
+            break;
+        case 0x9D: // Absolute, X
+            CPUInstructions::sta_absolute_x(this);
+            break;
+        case 0x99: // Absolute, Y
+            CPUInstructions::sta_absolute_y(this);
+            break;
+        case 0x81: // (Direct Page, X)
+            CPUInstructions::sta_dp_indirect_x(this);
+            break;
+        case 0x91: // (Direct Page), Y
+            CPUInstructions::sta_dp_indirect_y(this);
+            break;
+        case 0x92: // (Direct Page)
+            CPUInstructions::sta_dp_indirect(this);
+            break;
+        case 0x87: // [Direct Page]
+            CPUInstructions::sta_dp_indirect_long(this);
+            break;
+        case 0x97: // [Direct Page], Y
+            CPUInstructions::sta_dp_indirect_long_y(this);
+            break;
+        case 0x8F: // Absolute Long
+            CPUInstructions::sta_absolute_long(this);
+            break;
+        case 0x9F: // Absolute Long, X
+            CPUInstructions::sta_absolute_long_x(this);
+            break;
+        case 0x83: // Stack Relative
+            CPUInstructions::sta_stack_relative(this);
+            break;
+        case 0x93: // Stack Relative Indirect, Y
+            CPUInstructions::sta_stack_relative_indirect_y(this);
+            break;
+            
+        // Transfer Instructions
+        case 0xAA: // TAX - Transfer Accumulator to X
+            CPUInstructions::tax(this);
+            break;
+        case 0x8A: // TXA - Transfer X to Accumulator
+            CPUInstructions::txa(this);
+            break;
+        case 0xA8: // TAY - Transfer Accumulator to Y
+            CPUInstructions::tay(this);
+            break;
+        case 0x98: // TYA - Transfer Y to Accumulator
+            CPUInstructions::tya(this);
+            break;
+        case 0xBA: // TSX - Transfer Stack Pointer to X
+            CPUInstructions::tsx(this);
+            break;
+        case 0x9A: // TXS - Transfer X to Stack Pointer
+            CPUInstructions::txs(this);
+            break;
+        case 0x9B: // TXY - Transfer X to Y
+            CPUInstructions::txy(this);
+            break;
+        case 0xBB: // TYX - Transfer Y to X
+            CPUInstructions::tyx(this);
+            break;
+        case 0x5B: // TCD - Transfer Accumulator to Direct Page
+            CPUInstructions::tcd(this);
+            break;
+        case 0x7B: // TDC - Transfer Direct Page to Accumulator
+            CPUInstructions::tdc(this);
+            break;
+        case 0x3B: // TSC - Transfer Stack Pointer to Accumulator
+            CPUInstructions::tsc(this);
+            break;
+        case 0x1B: // TCS - Transfer Accumulator to Stack Pointer
+            CPUInstructions::tcs(this);
+            break;
+        case 0xEB: // XBA - Exchange B and A
+            CPUInstructions::xba(this);
+            break;
+        case 0xFB: // XCE - Exchange Carry and Emulation
+            CPUInstructions::xce(this);
+            break;
+            
+        // Stack Instructions
+        case 0x48: // PHA - Push Accumulator
+            CPUInstructions::pha(this);
+            break;
+        case 0x68: // PLA - Pull Accumulator
+            CPUInstructions::pla(this);
+            break;
+        case 0xDA: // PHX - Push X
+            CPUInstructions::phx(this);
+            break;
+        case 0xFA: // PLX - Pull X
+            CPUInstructions::plx(this);
+            break;
+        case 0x5A: // PHY - Push Y
+            CPUInstructions::phy(this);
+            break;
+        case 0x7A: // PLY - Pull Y
+            CPUInstructions::ply(this);
+            break;
+        case 0x08: // PHP - Push Processor Status
+            CPUInstructions::php(this);
+            break;
+        case 0x28: // PLP - Pull Processor Status
+            CPUInstructions::plp(this);
+            break;
+        case 0x0B: // PHD - Push Direct Page
+            CPUInstructions::phd(this);
+            break;
+        case 0x2B: // PLD - Pull Direct Page
+            CPUInstructions::pld(this);
+            break;
+        case 0x4B: // PHK - Push Program Bank
+            CPUInstructions::phk(this);
+            break;
+        case 0xAB: // PLK - Pull Program Bank
+            CPUInstructions::plk(this);
+            break;
+        case 0xF4: // PEA - Push Effective Address
+            CPUInstructions::pea(this);
+            break;
+        case 0xD4: // PEI - Push Effective Indirect Address
+            CPUInstructions::pei(this);
+            break;
+        case 0x62: // PER - Push Effective PC Relative Address
+            CPUInstructions::per(this);
+            break;
+            
+        // ADC - Add with Carry
+        case 0x69: // Immediate
+            CPUInstructions::adc_immediate(this);
+            break;
+        case 0x65: // Direct Page
+            CPUInstructions::adc_direct_page(this);
+            break;
+        case 0x75: // Direct Page, X
+            CPUInstructions::adc_direct_page_x(this);
+            break;
+        case 0x6D: // Absolute
+            CPUInstructions::adc_absolute(this);
+            break;
+        case 0x7D: // Absolute, X
+            CPUInstructions::adc_absolute_x(this);
+            break;
+        case 0x79: // Absolute, Y
+            CPUInstructions::adc_absolute_y(this);
+            break;
+        case 0x61: // (Direct Page, X)
+            CPUInstructions::adc_dp_indirect_x(this);
+            break;
+        case 0x71: // (Direct Page), Y
+            CPUInstructions::adc_dp_indirect_y(this);
+            break;
+        case 0x72: // (Direct Page)
+            CPUInstructions::adc_dp_indirect(this);
+            break;
+        case 0x67: // [Direct Page]
+            CPUInstructions::adc_dp_indirect_long(this);
+            break;
+        case 0x77: // [Direct Page], Y
+            CPUInstructions::adc_dp_indirect_long_y(this);
+            break;
+            
+        // SBC - Subtract with Carry
+        case 0xE9: // Immediate
+            CPUInstructions::sbc_immediate(this);
+            break;
+        case 0xE5: // Direct Page
+            CPUInstructions::sbc_direct_page(this);
+            break;
+        case 0xF5: // Direct Page, X
+            CPUInstructions::sbc_direct_page_x(this);
+            break;
+        case 0xED: // Absolute
+            CPUInstructions::sbc_absolute(this);
+            break;
+        case 0xFD: // Absolute, X
+            CPUInstructions::sbc_absolute_x(this);
+            break;
+        case 0xF9: // Absolute, Y
+            CPUInstructions::sbc_absolute_y(this);
+            break;
+        case 0xE1: // (Direct Page, X)
+            CPUInstructions::sbc_dp_indirect_x(this);
+            break;
+        case 0xF1: // (Direct Page), Y
+            CPUInstructions::sbc_dp_indirect_y(this);
+            break;
+        case 0xF2: // (Direct Page)
+            CPUInstructions::sbc_dp_indirect(this);
+            break;
+        case 0xE7: // [Direct Page]
+            CPUInstructions::sbc_dp_indirect_long(this);
+            break;
+        case 0xF7: // [Direct Page], Y
+            CPUInstructions::sbc_dp_indirect_long_y(this);
+            break;
+            
+        // INC - Increment
+        case 0x1A: // Accumulator
+            CPUInstructions::inc_accumulator(this);
+            break;
+        case 0xE6: // Direct Page
+            CPUInstructions::inc_direct_page(this);
+            break;
+        case 0xF6: // Direct Page, X
+            CPUInstructions::inc_direct_page_x(this);
+            break;
+        case 0xEE: // Absolute
+            CPUInstructions::inc_absolute(this);
+            break;
+        case 0xFE: // Absolute, X
+            CPUInstructions::inc_absolute_x(this);
+            break;
+        case 0xE8: // INX
+            CPUInstructions::inx(this);
+            break;
+        case 0xC8: // INY
+            CPUInstructions::iny(this);
+            break;
+            
+        // DEC - Decrement
+        case 0x3A: // Accumulator
+            CPUInstructions::dec_accumulator(this);
+            break;
+        case 0xC6: // Direct Page
+            CPUInstructions::dec_direct_page(this);
+            break;
+        case 0xD6: // Direct Page, X
+            CPUInstructions::dec_direct_page_x(this);
+            break;
+        case 0xCE: // Absolute
+            CPUInstructions::dec_absolute(this);
+            break;
+        case 0xDE: // Absolute, X
+            CPUInstructions::dec_absolute_x(this);
+            break;
+        case 0xCA: // DEX
+            CPUInstructions::dex(this);
+            break;
+        case 0x88: // DEY
+            CPUInstructions::dey(this);
+            break;
+            
+        // CMP - Compare Accumulator
+        case 0xC9: // Immediate
+            CPUInstructions::cmp_immediate(this);
+            break;
+        case 0xC5: // Direct Page
+            CPUInstructions::cmp_direct_page(this);
+            break;
+        case 0xD5: // Direct Page, X
+            CPUInstructions::cmp_direct_page_x(this);
+            break;
+        case 0xCD: // Absolute
+            CPUInstructions::cmp_absolute(this);
+            break;
+        case 0xDD: // Absolute, X
+            CPUInstructions::cmp_absolute_x(this);
+            break;
+        case 0xD9: // Absolute, Y
+            CPUInstructions::cmp_absolute_y(this);
+            break;
+        case 0xC1: // (Direct Page, X)
+            CPUInstructions::cmp_dp_indirect_x(this);
+            break;
+        case 0xD1: // (Direct Page), Y
+            CPUInstructions::cmp_dp_indirect_y(this);
+            break;
+        case 0xD2: // (Direct Page)
+            CPUInstructions::cmp_dp_indirect(this);
+            break;
+        case 0xC7: // [Direct Page]
+            CPUInstructions::cmp_dp_indirect_long(this);
+            break;
+        case 0xD7: // [Direct Page], Y
+            CPUInstructions::cmp_dp_indirect_long_y(this);
+            break;
+        case 0xCF: // Absolute Long
+            CPUInstructions::cmp_absolute_long(this);
+            break;
+        case 0xDF: // Absolute Long, X
+            CPUInstructions::cmp_absolute_long_x(this);
+            break;
+        case 0xC3: // Stack Relative
+            CPUInstructions::cmp_stack_relative(this);
+            break;
+        case 0xD3: // Stack Relative Indirect, Y
+            CPUInstructions::cmp_stack_relative_indirect_y(this);
+            break;
+            
+        // CPX - Compare X Register
+        case 0xE0: // Immediate
+            CPUInstructions::cpx_immediate(this);
+            break;
+        case 0xE4: // Direct Page
+            CPUInstructions::cpx_direct_page(this);
+            break;
+        case 0xEC: // Absolute
+            CPUInstructions::cpx_absolute(this);
+            break;
+            
+        // CPY - Compare Y Register
+        case 0xC0: // Immediate
+            CPUInstructions::cpy_immediate(this);
+            break;
+        case 0xC4: // Direct Page
+            CPUInstructions::cpy_direct_page(this);
+            break;
+        case 0xCC: // Absolute
+            CPUInstructions::cpy_absolute(this);
+            break;
+            
+        // AND - Logical AND
+        case 0x29: // Immediate
+            CPUInstructions::and_immediate(this);
+            break;
+        case 0x25: // Direct Page
+            CPUInstructions::and_direct_page(this);
+            break;
+        case 0x35: // Direct Page, X
+            CPUInstructions::and_direct_page_x(this);
+            break;
+        case 0x2D: // Absolute
+            CPUInstructions::and_absolute(this);
+            break;
+        case 0x3D: // Absolute, X
+            CPUInstructions::and_absolute_x(this);
+            break;
+        case 0x39: // Absolute, Y
+            CPUInstructions::and_absolute_y(this);
+            break;
+        case 0x21: // (Direct Page, X)
+            CPUInstructions::and_dp_indirect_x(this);
+            break;
+        case 0x31: // (Direct Page), Y
+            CPUInstructions::and_dp_indirect_y(this);
+            break;
+        case 0x32: // (Direct Page)
+            CPUInstructions::and_dp_indirect(this);
+            break;
+        case 0x27: // [Direct Page]
+            CPUInstructions::and_dp_indirect_long(this);
+            break;
+        case 0x37: // [Direct Page], Y
+            CPUInstructions::and_dp_indirect_long_y(this);
+            break;
+            
+        // ORA - Logical OR
+        case 0x09: // Immediate
+            CPUInstructions::ora_immediate(this);
+            break;
+        case 0x05: // Direct Page
+            CPUInstructions::ora_direct_page(this);
+            break;
+        case 0x15: // Direct Page, X
+            CPUInstructions::ora_direct_page_x(this);
+            break;
+        case 0x0D: // Absolute
+            CPUInstructions::ora_absolute(this);
+            break;
+        case 0x1D: // Absolute, X
+            CPUInstructions::ora_absolute_x(this);
+            break;
+        case 0x19: // Absolute, Y
+            CPUInstructions::ora_absolute_y(this);
+            break;
+        case 0x01: // (Direct Page, X)
+            CPUInstructions::ora_dp_indirect_x(this);
+            break;
+        case 0x11: // (Direct Page), Y
+            CPUInstructions::ora_dp_indirect_y(this);
+            break;
+        case 0x12: // (Direct Page)
+            CPUInstructions::ora_dp_indirect(this);
+            break;
+        case 0x07: // [Direct Page]
+            CPUInstructions::ora_dp_indirect_long(this);
+            break;
+        case 0x17: // [Direct Page], Y
+            CPUInstructions::ora_dp_indirect_long_y(this);
+            break;
+            
+        // EOR - Logical XOR
+        case 0x49: // Immediate
+            CPUInstructions::eor_immediate(this);
+            break;
+        case 0x45: // Direct Page
+            CPUInstructions::eor_direct_page(this);
+            break;
+        case 0x55: // Direct Page, X
+            CPUInstructions::eor_direct_page_x(this);
+            break;
+        case 0x4D: // Absolute
+            CPUInstructions::eor_absolute(this);
+            break;
+        case 0x5D: // Absolute, X
+            CPUInstructions::eor_absolute_x(this);
+            break;
+        case 0x59: // Absolute, Y
+            CPUInstructions::eor_absolute_y(this);
+            break;
+        case 0x41: // (Direct Page, X)
+            CPUInstructions::eor_dp_indirect_x(this);
+            break;
+        case 0x51: // (Direct Page), Y
+            CPUInstructions::eor_dp_indirect_y(this);
+            break;
+        case 0x52: // (Direct Page)
+            CPUInstructions::eor_dp_indirect(this);
+            break;
+        case 0x47: // [Direct Page]
+            CPUInstructions::eor_dp_indirect_long(this);
+            break;
+        case 0x57: // [Direct Page], Y
+            CPUInstructions::eor_dp_indirect_long_y(this);
+            break;
+            
+        // Branch Instructions
+        case 0x90: // BCC - Branch if Carry Clear
+            CPUInstructions::bcc(this);
+            break;
+        case 0xB0: // BCS - Branch if Carry Set
+            CPUInstructions::bcs(this);
+            break;
+        case 0xF0: // BEQ - Branch if Equal
+            CPUInstructions::beq(this);
+            break;
+        case 0xD0: // BNE - Branch if Not Equal
+            CPUInstructions::bne(this);
+            break;
+        case 0x30: // BMI - Branch if Minus
+            CPUInstructions::bmi(this);
+            break;
+        case 0x10: // BPL - Branch if Plus
+            CPUInstructions::bpl(this);
+            break;
+        case 0x50: // BVC - Branch if Overflow Clear
+            CPUInstructions::bvc(this);
+            break;
+        case 0x70: // BVS - Branch if Overflow Set
+            CPUInstructions::bvs(this);
+            break;
+        case 0x80: // BRA - Branch Always
+            CPUInstructions::bra(this);
+            break;
+        case 0x82: // BRL - Branch Always Long
+            CPUInstructions::brl(this);
+            break;
+            
+        // Shift and Rotate Instructions
+        // ASL - Arithmetic Shift Left
+        case 0x0A: // Accumulator
+            CPUInstructions::asl_accumulator(this);
+            break;
+        case 0x06: // Direct Page
+            CPUInstructions::asl_direct_page(this);
+            break;
+        case 0x16: // Direct Page, X
+            CPUInstructions::asl_direct_page_x(this);
+            break;
+        case 0x0E: // Absolute
+            CPUInstructions::asl_absolute(this);
+            break;
+        case 0x1E: // Absolute, X
+            CPUInstructions::asl_absolute_x(this);
+            break;
+            
+        // LSR - Logical Shift Right
+        case 0x4A: // Accumulator
+            CPUInstructions::lsr_accumulator(this);
+            break;
+        case 0x46: // Direct Page
+            CPUInstructions::lsr_direct_page(this);
+            break;
+        case 0x56: // Direct Page, X
+            CPUInstructions::lsr_direct_page_x(this);
+            break;
+        case 0x4E: // Absolute
+            CPUInstructions::lsr_absolute(this);
+            break;
+        case 0x5E: // Absolute, X
+            CPUInstructions::lsr_absolute_x(this);
+            break;
+            
+        // ROL - Rotate Left
+        case 0x2A: // Accumulator
+            CPUInstructions::rol_accumulator(this);
+            break;
+        case 0x26: // Direct Page
+            CPUInstructions::rol_direct_page(this);
+            break;
+        case 0x36: // Direct Page, X
+            CPUInstructions::rol_direct_page_x(this);
+            break;
+        case 0x2E: // Absolute
+            CPUInstructions::rol_absolute(this);
+            break;
+        case 0x3E: // Absolute, X
+            CPUInstructions::rol_absolute_x(this);
+            break;
+            
+        // ROR - Rotate Right
+        case 0x6A: // Accumulator
+            CPUInstructions::ror_accumulator(this);
+            break;
+        case 0x66: // Direct Page
+            CPUInstructions::ror_direct_page(this);
+            break;
+        case 0x76: // Direct Page, X
+            CPUInstructions::ror_direct_page_x(this);
+            break;
+        case 0x6E: // Absolute
+            CPUInstructions::ror_absolute(this);
+            break;
+        case 0x7E: // Absolute, X
+            CPUInstructions::ror_absolute_x(this);
+            break;
+            
+        // Bit Instructions
+        case 0x89: // Immediate
+            CPUInstructions::bit_immediate(this);
+            break;
+        case 0x24: // Direct Page
+            CPUInstructions::bit_direct_page(this);
+            break;
+        case 0x2C: // Absolute
+            CPUInstructions::bit_absolute(this);
+            break;
+        case 0x3C: // Absolute, X
+            CPUInstructions::bit_absolute_x(this);
+            break;
+            
+        // Block Move Instructions
+        case 0x44: // MVP - Move Positive
+            CPUInstructions::mvp(this);
+            break;
+        case 0x54: // MVN - Move Negative
+            CPUInstructions::mvn(this);
+            break;
+            
+        // Default case for unimplemented instructions
+        default:
+            cycles = 2; // Default cycle count
+            // Don't increment PC for unimplemented instructions to avoid infinite loops
+            // Instead, increment PC by 1 to move to next instruction
+            pc++;
+            break;
     }
 }
 
-// All stub implementations remain the same. This is where you will fill in logic.
-uint8_t CPU::IMM() { addr_abs = pc++; return 0; }
-uint8_t CPU::ABS() { uint16_t lo = bus->read(pc++); uint16_t hi = bus->read(pc++); addr_abs = (hi << 8) | lo; return 0; }
-uint8_t CPU::ZP0() { addr_abs = bus->read(pc++); addr_abs &= 0x00FF; return 0; }
-uint8_t CPU::ZPX() { addr_abs = (bus->read(pc++) + x); addr_abs &= 0x00FF; return 0; }
-uint8_t CPU::ZPY() { addr_abs = (bus->read(pc++) + y); addr_abs &= 0x00FF; return 0; }
-uint8_t CPU::ABX() { uint16_t lo = bus->read(pc++); uint16_t hi = bus->read(pc++); addr_abs = (hi << 8) | lo; addr_abs += x; if ((addr_abs & 0xFF00) != (hi << 8)) cycles++; return 0; }
-uint8_t CPU::ABY() { uint16_t lo = bus->read(pc++); uint16_t hi = bus->read(pc++); addr_abs = (hi << 8) | lo; addr_abs += y; if ((addr_abs & 0xFF00) != (hi << 8)) cycles++; return 0; }
-uint8_t CPU::IND() { uint16_t ptr_lo = bus->read(pc++); uint16_t ptr_hi = bus->read(pc++); uint16_t ptr = (ptr_hi << 8) | ptr_lo; if (ptr_lo == 0x00FF) { addr_abs = (bus->read(ptr & 0xFF00) << 8) | bus->read(ptr + 0); } else { addr_abs = (bus->read(ptr + 1) << 8) | bus->read(ptr + 0); } return 0; }
-uint8_t CPU::IZX() { uint16_t t = bus->read(pc++); uint16_t lo = bus->read((uint16_t)(t + x) & 0x00FF); uint16_t hi = bus->read((uint16_t)(t + x + 1) & 0x00FF); addr_abs = (hi << 8) | lo; return 0; }
-uint8_t CPU::IZY() { uint16_t t = bus->read(pc++); uint16_t lo = bus->read(t & 0x00FF); uint16_t hi = bus->read((t + 1) & 0x00FF); addr_abs = (hi << 8) | lo; addr_abs += y; if ((addr_abs & 0xFF00) != (hi << 8)) cycles++; return 0; }
-uint8_t CPU::REL() { addr_rel = bus->read(pc++); if (addr_rel & 0x80) addr_rel |= 0xFF00; return 0; }
-uint8_t CPU::ADC() { return 0; }
-uint8_t CPU::AND() { return 0; }
-uint8_t CPU::ASL() { return 0; }
-uint8_t CPU::BCC() { return 0; }
-uint8_t CPU::BCS() { return 0; }
-uint8_t CPU::BEQ() { return 0; }
-uint8_t CPU::BIT() { return 0; }
-uint8_t CPU::BMI() { return 0; }
-uint8_t CPU::BNE() { return 0; }
-uint8_t CPU::BPL() { return 0; }
-uint8_t CPU::BRK() { return 0; }
-uint8_t CPU::BVC() { return 0; }
-uint8_t CPU::BVS() { return 0; }
-uint8_t CPU::CLC() { set_flag(C, false); return 0; }
-uint8_t CPU::CLD() { set_flag(D, false); return 0; }
-uint8_t CPU::CLI() { set_flag(I, false); return 0; }
-uint8_t CPU::CLV() { set_flag(V, false); return 0; }
-uint8_t CPU::CMP() { return 0; }
-uint8_t CPU::CPX() { return 0; }
-uint8_t CPU::CPY() { return 0; }
-uint8_t CPU::DEC() { return 0; }
-uint8_t CPU::DEX() { x--; set_flag(Z, x == 0x00); set_flag(N, x & 0x80); return 0; }
-uint8_t CPU::DEY() { y--; set_flag(Z, y == 0x00); set_flag(N, y & 0x80); return 0; }
-uint8_t CPU::EOR() { return 0; }
-uint8_t CPU::INC() { return 0; }
-uint8_t CPU::INX() { x++; set_flag(Z, x == 0x00); set_flag(N, x & 0x80); return 0; }
-uint8_t CPU::INY() { y++; set_flag(Z, y == 0x00); set_flag(N, y & 0x80); return 0; }
-uint8_t CPU::JMP() { pc = addr_abs; return 0; }
-uint8_t CPU::JSR() { return 0; }
-uint8_t CPU::LDA() { fetched = bus->read(addr_abs); a = fetched; set_flag(Z, a == 0x00); set_flag(N, a & 0x80); return 0; }
-uint8_t CPU::LDX() { fetched = bus->read(addr_abs); x = fetched; set_flag(Z, x == 0x00); set_flag(N, x & 0x80); return 0; }
-uint8_t CPU::LDY() { fetched = bus->read(addr_abs); y = fetched; set_flag(Z, y == 0x00); set_flag(N, y & 0x80); return 0; }
-uint8_t CPU::LSR() { return 0; }
-uint8_t CPU::NOP() { return 0; }
-uint8_t CPU::ORA() { return 0; }
-uint8_t CPU::PHA() { return 0; }
-uint8_t CPU::PHP() { return 0; }
-uint8_t CPU::PLA() { return 0; }
-uint8_t CPU::PLP() { return 0; }
-uint8_t CPU::ROL() { return 0; }
-uint8_t CPU::ROR() { return 0; }
-uint8_t CPU::RTI() { return 0; }
-uint8_t CPU::RTS() { return 0; }
-uint8_t CPU::SBC() { return 0; }
-uint8_t CPU::SEC() { set_flag(C, true); return 0; }
-uint8_t CPU::SED() { set_flag(D, true); return 0; }
-uint8_t CPU::SEI() { set_flag(I, true); return 0; }
-uint8_t CPU::STA() { bus->write(addr_abs, a); return 0; }
-uint8_t CPU::STX() { bus->write(addr_abs, x); return 0; }
-uint8_t CPU::STY() { bus->write(addr_abs, y); return 0; }
-uint8_t CPU::TAX() { x = a; set_flag(Z, x == 0x00); set_flag(N, x & 0x80); return 0; }
-uint8_t CPU::TAY() { y = a; set_flag(Z, y == 0x00); set_flag(N, y & 0x80); return 0; }
-uint8_t CPU::TSX() { x = stkp; set_flag(Z, x == 0x00); set_flag(N, x & 0x80); return 0; }
-uint8_t CPU::TXA() { a = x; set_flag(Z, a == 0x00); set_flag(N, a & 0x80); return 0; }
-uint8_t CPU::TXS() { stkp = x; return 0; }
-uint8_t CPU::TYA() { a = y; set_flag(Z, a == 0x00); set_flag(N, a & 0x80); return 0; }
-uint8_t CPU::XXX() { return 0; }
-void CPU::clock() {}
-void CPU::reset() {}
-void CPU::irq() {}
-void CPU::nmi() {}
-uint8_t CPU::get_flag(FLAGS f) { return (status & f) > 0 ? 1 : 0; }
-void CPU::set_flag(FLAGS f, bool v) { if (v) status |= f; else status &= ~f; }
+// Interrupt request
+void CPU::irq() {
+    if (!get_flag(I)) {
+        CPUHelpers::handle_irq(this);
+    }
+}
+
+// Non-maskable interrupt
+void CPU::nmi() {
+    CPUHelpers::handle_nmi(this);
+}
+
+// Flag management
+void CPU::set_flag(FLAGS f, bool v) {
+    if (v) {
+        p |= f;
+    } else {
+        p &= ~f;
+    }
+}
+
+bool CPU::get_flag(FLAGS f) const {
+    return (p & f) != 0;
+}
+
+// Helper functions
+void CPU::setZN(uint16_t value, bool is16) {
+    set_flag(Z, value == 0);
+    set_flag(N, is16 ? (value & 0x8000) : (value & 0x80));
+}
+
+void CPU::validate_stack_pointer() {
+    CPUHelpers::validate_stack_pointer(this);
+}

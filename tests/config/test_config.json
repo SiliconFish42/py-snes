@@ -1,0 +1,138 @@
+{
+  "test_framework": {
+    "name": "PySNES Test Framework",
+    "version": "1.0.0",
+    "description": "Comprehensive testing framework for PySNES emulator"
+  },
+  "test_roms": {
+    "cpu_65816": {
+      "description": "65816 CPU instruction tests",
+      "file_patterns": [
+        "cputest-*.sfc",
+        "cpu-test-*.sfc",
+        "65816-test-*.sfc"
+      ],
+      "test_parameters": {
+        "max_cycles": 1000000,
+        "timeout_ms": 30000,
+        "verbose_output": false,
+        "detection_patterns": {
+          "success": ["SUCCESS", "PASSED", "OK"],
+          "failure": ["FAILED", "ERROR", "FAIL"],
+          "completion_addresses": [8192, 8193, 8194]
+        }
+      }
+    },
+    "spc_700": {
+      "description": "SPC-700 sound processor tests",
+      "file_patterns": [
+        "spctest-*.sfc",
+        "spc-test-*.sfc",
+        "sound-test-*.sfc"
+      ],
+      "test_parameters": {
+        "max_cycles": 500000,
+        "timeout_ms": 15000,
+        "verbose_output": false,
+        "detection_patterns": {
+          "success": ["SPC_SUCCESS", "SOUND_OK"],
+          "failure": ["SPC_FAILED", "SOUND_ERROR"],
+          "completion_addresses": [8512, 8513]
+        }
+      }
+    },
+    "ppu": {
+      "description": "PPU graphics processor tests",
+      "file_patterns": [
+        "pputest-*.sfc",
+        "ppu-test-*.sfc",
+        "graphics-test-*.sfc"
+      ],
+      "test_parameters": {
+        "max_cycles": 2000000,
+        "timeout_ms": 45000,
+        "verbose_output": false,
+        "detection_patterns": {
+          "success": ["PPU_SUCCESS", "GRAPHICS_OK"],
+          "failure": ["PPU_FAILED", "GRAPHICS_ERROR"],
+          "completion_addresses": [8448, 8449]
+        }
+      }
+    },
+    "apu": {
+      "description": "APU audio processor tests",
+      "file_patterns": [
+        "aputest-*.sfc",
+        "apu-test-*.sfc",
+        "audio-test-*.sfc"
+      ],
+      "test_parameters": {
+        "max_cycles": 300000,
+        "timeout_ms": 20000,
+        "verbose_output": false,
+        "detection_patterns": {
+          "success": ["APU_SUCCESS", "AUDIO_OK"],
+          "failure": ["APU_FAILED", "AUDIO_ERROR"],
+          "completion_addresses": [8512, 8513]
+        }
+      }
+    }
+  },
+  "test_suites": {
+    "quick": {
+      "description": "Quick test suite for development",
+      "max_cycles": 10000,
+      "timeout_ms": 5000,
+      "verbose_output": true,
+      "include_roms": ["cpu_65816"]
+    },
+    "standard": {
+      "description": "Standard test suite for regular testing",
+      "max_cycles": 100000,
+      "timeout_ms": 15000,
+      "verbose_output": false,
+      "include_roms": ["cpu_65816", "spc_700"]
+    },
+    "comprehensive": {
+      "description": "Comprehensive test suite for full validation",
+      "max_cycles": 1000000,
+      "timeout_ms": 30000,
+      "verbose_output": false,
+      "include_roms": ["cpu_65816", "spc_700", "ppu", "apu"]
+    },
+    "continuous_integration": {
+      "description": "CI test suite for automated testing",
+      "max_cycles": 50000,
+      "timeout_ms": 10000,
+      "verbose_output": false,
+      "include_roms": ["cpu_65816"],
+      "generate_reports": true
+    }
+  },
+  "reporting": {
+    "output_directory": "test_output",
+    "output_formats": ["json", "txt", "html"],
+    "include_timestamps": true,
+    "include_performance_metrics": true,
+    "save_logs": true,
+    "log_level": "info",
+    "cleanup_old_reports": true,
+    "max_report_age_days": 7
+  },
+  "memory_monitoring": {
+    "enabled": true,
+    "snapshot_intervals": 1000,
+    "monitor_regions": [
+      {"start": 0, "end": 255, "name": "Zero Page"},
+      {"start": 256, "end": 511, "name": "Stack"},
+      {"start": 8192, "end": 8447, "name": "Test Status"},
+      {"start": 32768, "end": 65535, "name": "ROM"}
+    ]
+  },
+  "debugging": {
+    "enable_instruction_tracing": false,
+    "trace_instructions": 100,
+    "save_execution_log": false,
+    "break_on_failure": false
+  }
+} 

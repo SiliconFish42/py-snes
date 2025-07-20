@@ -1,73 +1,46 @@
-#include "cartridge.hpp"
 #include <fstream>
+#include "cartridge.hpp"
 
-// This is a very basic cartridge implementation that only supports NROM (mapper 0)
-// A full implementation would require a factory for different mapper types.
-
-Cartridge::Cartridge(const std::string& rom_path) {
-    std::ifstream ifs(rom_path, std::ios::binary | std::ios::ate);
-    if (ifs) {
-        std::streamsize size = ifs.tellg();
-        ifs.seekg(0, std::ios::beg);
-
-        std::vector<char> buffer(size);
-        if (ifs.read(buffer.data(), size)) {
-            // iNES header format
-            if (buffer[0] == 'N' && buffer[1] == 'E' && buffer[2] == 'S' && buffer[3] == 0x1A) {
-                prg_banks = buffer[4];
-                chr_banks = buffer[5];
-                mapper_id = (buffer[7] & 0xF0) | (buffer[6] >> 4);
-
-                // For now, we only support NROM which can have 1 or 2 PRG banks
-                // and 1 CHR bank.
-                if (mapper_id == 0) {
-                    uint32_t prg_size = prg_banks * 16384;
-                    uint32_t chr_size = chr_banks * 8192;
-
-                    prg_memory.resize(prg_size);
-                    std::copy(buffer.begin() + 16, buffer.begin() + 16 + prg_size, prg_memory.begin());
-
-                    chr_memory.resize(chr_size);
-                    std::copy(buffer.begin() + 16 + prg_size, buffer.begin() + 16 + prg_size + chr_size, chr_memory.begin());
-
-                    loaded = true;
-                }
-            }
-        }
+Cartridge::Cartridge(const std::string &rom_path) {
+    std::ifstream rom_file(rom_path, std::ios::binary | std::ios::ate);
+    if (rom_file.is_open()) {
+        std::streampos size = rom_file.tellg();
+        rom_data.resize(size);
+        rom_file.seekg(0, std::ios::beg);
+        rom_file.read((char *)rom_data.data(), size);
+        rom_file.close();
+        loaded = true;
     }
 }
 
-Cartridge::~Cartridge() = default;
+Cartridge::~Cartridge() {}
 
-bool Cartridge::is_loaded() const {
+bool Cartridge::is_loaded() {
     return loaded;
 }
 
-uint8_t Cartridge::read(uint16_t addr) {
+// The CPU is asking to read from the cartridge
+uint8_t Cartridge::cpu_read(uint16_t addr, bool bReadOnly) {
+    // Basic LoROM mapping for now
     if (addr >= 0x8000 && addr <= 0xFFFF) {
-        // For NROM, the address is mirrored if there's only one PRG bank
-        uint16_t mapped_addr = addr & (prg_banks > 1 ? 0x7FFF : 0x3FFF);
-        return prg_memory[mapped_addr];
+        // The address is masked to wrap around the ROM size
+        return rom_data[addr & (rom_data.size() - 1)];
     }
-    return 0;
+    return 0; // Return 0 for addresses outside the ROM range
 }
 
-void Cartridge::write(uint16_t addr, uint8_t data) {
-    // NROM has no writable memory on the cartridge from the CPU side
+void Cartridge::cpu_write(uint16_t addr, uint8_t data) {
+    // For now, we don't support writing to the cartridge (SRAM, etc.)
 }
 
-bool Cartridge::ppu_read(uint16_t addr, uint8_t& data) {
-    if (addr >= 0x0000 && addr <= 0x1FFF) {
-        if (chr_banks > 0) {
-            data = chr_memory[addr];
-            return true;
-        }
-    }
+bool Cartridge::ppu_read(uint16_t addr, uint8_t &data) {
+    // TODO: PPU reads from CHR ROM
     return false;
 }
 
 bool Cartridge::ppu_write(uint16_t addr, uint8_t data) {
-    // NROM CHR memory is ROM, so no writing is allowed.
-    // Some mappers have CHR RAM, which would be handled here.
+    // For now, we don't support writing to the cartridge (SRAM, etc.)
     return false;
 }
+
+void Cartridge::reset() {}

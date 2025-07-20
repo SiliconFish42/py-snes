@@ -1,26 +1,21 @@
 #include "controller.hpp"
 
 Controller::Controller() {}
-Controller::~Controller() = default;
+Controller::~Controller() {}
 
 uint8_t Controller::read() {
-    uint8_t data = 0x00;
-    if (strobe_mode) {
-        // The first bit read is the 'A' button
-        data = (snapshot & 0x80) > 0;
-    } else {
-        // Read the next bit
-        data = (snapshot & 0x80) > 0;
-        snapshot <<= 1;
-    }
-    return data | 0x40; // The unused bits are often read as 1
+    // On a read, we return the least significant bit of the latched state
+    // and then shift the bits for the next read.
+    uint8_t data = (snapshot & 0x80) > 0;
+    snapshot <<= 1;
+    return data;
 }
 
-void Controller::strobe(uint8_t data) {
-    if ((data & 1) == 1) {
-        strobe_mode = true;
+void Controller::write(uint8_t data) {
+    // Writing to the controller port latches the current button state
+    if (data & 1) {
         snapshot = buttons;
-    } else {
-        strobe_mode = false;
     }
 }
+
+void Controller::reset() {}

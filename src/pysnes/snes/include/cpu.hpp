@@ -1,70 +1,68 @@
 #pragma once
 #include <cstdint>
 #include <memory>
-#include <string>
-#include <vector>
 
+// Forward declarations
 class Bus;
 
+// 65816 CPU core for SNES
 class CPU {
-  public:
+public:
+    // Constructor/Destructor
     CPU();
     ~CPU();
 
-    // CPU Core registers
-    uint8_t a = 0x00;
-    uint8_t x = 0x00;
-    uint8_t y = 0x00;
-    uint8_t stkp = 0x00;
-    uint16_t pc = 0x0000;
-    uint8_t status = 0x00;
+    // Core CPU registers (65816 specific)
+    uint16_t a = 0x0000;        // Accumulator (16-bit in native mode)
+    uint16_t x = 0x0000;        // X index register (16-bit in native mode)
+    uint16_t y = 0x0000;        // Y index register (16-bit in native mode)
+    uint16_t stkp = 0x01FD;     // Stack pointer (16-bit in native mode)
+    uint32_t pc = 0x8000;       // Program counter (24-bit)
+    uint16_t p = 0x34;          // Processor status register
+    uint16_t d = 0x0000;        // Direct Page register
+    uint8_t pb = 0x00;          // Program Bank register
+    uint8_t db = 0x00;          // Data Bank register
 
-    std::shared_ptr<Bus> bus = nullptr;
-
-    // Core Functions
+    // Bus connection
     void connect_bus(std::shared_ptr<Bus> b);
-    void clock();
-    void reset();
-    void irq();
-    void nmi();
-    void step();
-    void power_on();
+    std::shared_ptr<Bus> bus;   // Made public for instruction access
 
-    // Addressing Modes & Opcodes are now private implementation details
-    uint8_t fetched = 0x00;
-    uint16_t addr_abs = 0x0000;
-    uint16_t addr_rel = 0x00;
-    uint8_t opcode = 0x00;
-    uint8_t cycles = 0;
+    // Core execution
+    void step();                // Execute one instruction
+    void reset();               // Reset CPU state
+    void irq();                 // Interrupt request
+    void nmi();                 // Non-maskable interrupt
 
+    // Flag management
     enum FLAGS {
-        C = (1 << 0), Z = (1 << 1), I = (1 << 2), D = (1 << 3),
-        B = (1 << 4), U = (1 << 5), V = (1 << 6), N = (1 << 7),
+        C = (1 << 0),           // Carry
+        Z = (1 << 1),           // Zero
+        I = (1 << 2),           // IRQ Disable
+        D = (1 << 3),           // Decimal
+        X = (1 << 4),           // Index register size (0=16, 1=8)
+        M = (1 << 5),           // Accumulator size (0=16, 1=8)
+        V = (1 << 6),           // Overflow
+        N = (1 << 7),           // Negative
+        E = (1 << 8)            // Emulation flag
     };
-
-  private:
-    uint8_t get_flag(FLAGS f);
+    
     void set_flag(FLAGS f, bool v);
+    bool get_flag(FLAGS f) const;
 
-    // Addressing Modes
-    uint8_t IMM(); uint8_t ZP0(); uint8_t ZPX(); uint8_t ZPY();
-    uint8_t ABS(); uint8_t ABX(); uint8_t ABY(); uint8_t IND();
-    uint8_t IZX(); uint8_t IZY(); uint8_t REL();
+    // State information
+    uint8_t cycles = 0;         // Cycles for current instruction
+    uint8_t opcode = 0;         // Current opcode (for debugging)
 
-    // Opcodes
-    uint8_t ADC(); uint8_t AND(); uint8_t ASL(); uint8_t BCC();
-    uint8_t BCS(); uint8_t BEQ(); uint8_t BIT(); uint8_t BMI();
-    uint8_t BNE(); uint8_t BPL(); uint8_t BRK(); uint8_t BVC();
-    uint8_t BVS(); uint8_t CLC(); uint8_t CLD(); uint8_t CLI();
-    uint8_t CLV(); uint8_t CMP(); uint8_t CPX(); uint8_t CPY();
-    uint8_t DEC(); uint8_t DEX(); uint8_t DEY(); uint8_t EOR();
-    uint8_t INC(); uint8_t INX(); uint8_t INY(); uint8_t JMP();
-    uint8_t JSR(); uint8_t LDA(); uint8_t LDX(); uint8_t LDY();
-    uint8_t LSR(); uint8_t NOP(); uint8_t ORA(); uint8_t PHA();
-    uint8_t PHP(); uint8_t PLA(); uint8_t PLP(); uint8_t ROL();
-    uint8_t ROR(); uint8_t RTI(); uint8_t RTS(); uint8_t SBC();
-    uint8_t SEC(); uint8_t SED(); uint8_t SEI(); uint8_t STA();
-    uint8_t STX(); uint8_t STY(); uint8_t TAX(); uint8_t TAY();
-    uint8_t TSX(); uint8_t TXA(); uint8_t TXS(); uint8_t TYA();
-    uint8_t XXX(); // Represents an illegal opcode
+    // Debug/testing helpers
+    uint8_t get_opcode() const { return opcode; }
+
+    // Helper functions (made public for instruction access)
+    void setZN(uint16_t value, bool is16);
+    void validate_stack_pointer();
+
+private:
+    // Internal state
+    uint32_t addr_abs = 0;      // Absolute address
+    uint32_t addr_rel = 0;      // Relative address
+    uint16_t fetched = 0;       // Fetched data
 };

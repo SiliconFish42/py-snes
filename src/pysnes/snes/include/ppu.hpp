@@ -1,114 +1,130 @@
-#ifndef PPU_HPP
-#define PPU_HPP
-
+#pragma once
 #include <cstdint>
-#include <memory>
-#include <vector>
 #include <array>
+#include <vector>
 
-#include "cartridge.hpp"
-
+// SNES PPU (Picture Processing Unit) - Initial Skeleton
+// VRAM: 64KB, CGRAM: 512B, OAM: 544B
 class PPU {
 public:
     PPU();
     ~PPU();
 
-    // PPU Registers
-    uint8_t read_register(uint16_t addr);
-    void write_register(uint16_t addr, uint8_t data);
-
-    void connect_cartridge(std::shared_ptr<Cartridge> cartridge);
-
-    // PPU Core
-    void step();
+    // Reset PPU state
     void reset();
-    void power_on();
 
-    // For DMA
-    void start_dma(uint8_t page);
+    // VRAM access
+    uint8_t read_vram(uint16_t addr) const;
+    void write_vram(uint16_t addr, uint8_t value);
 
-    // Screen buffer
-    std::vector<uint32_t>& get_screen();
-    bool frame_complete = false;
-    bool nmi = false;
+    // CGRAM access
+    uint8_t read_cgram(uint16_t addr) const;
+    void write_cgram(uint16_t addr, uint8_t value);
+
+    // OAM access
+    uint8_t read_oam(uint16_t addr) const;
+    void write_oam(uint16_t addr, uint8_t value);
+
+    // Register access stubs (to be implemented)
+    uint8_t read_register(uint16_t addr);
+    void write_register(uint16_t addr, uint8_t value);
+
+    // Bus interface for CPU register access
+    uint8_t cpu_read(uint16_t addr) { return read_register(addr); }
+    void cpu_write(uint16_t addr, uint8_t data) { write_register(addr, data); }
 
 private:
-    std::shared_ptr<Cartridge> cartridge;
+    // 64KB Video RAM
+    std::array<uint8_t, 64 * 1024> vram_;
+    // 512B Color RAM
+    std::array<uint8_t, 512> cgram_;
+    // 544B Object Attribute Memory (OAM)
+    std::array<uint8_t, 544> oam_;
 
-    // PPU Memory
-    std::array<uint8_t, 2048> name_tables;
-    std::array<uint8_t, 32> palette_ram;
-    std::array<uint8_t, 256> oam_data;
+    // OAM address and latch state for $2102/$2103/$2104
+    uint16_t oam_addr_ = 0; // 9-bit OAM address
+    bool oam_priority_rotation_ = false;
+    bool oam_addr_msb_ = false;
+    bool oam_latch_low_ = true; // Track low/high byte writes
 
-    // Internal Registers
-    uint16_t vram_addr = 0x0000; // Current VRAM address
-    uint16_t tram_addr = 0x0000; // Temporary VRAM address
-    uint8_t fine_x = 0;
+    // VRAM and CGRAM read buffers (for $2139/$213A and $213B)
+    uint16_t vram_read_buffer_ = 0;
+    uint8_t cgram_read_buffer_ = 0;
 
-    uint8_t vram_read_buffer = 0;
+    // --- PPU Register State ($2100–$213F) ---
+    uint8_t inidisp_ = 0;      // $2100: Display control
+    uint8_t obsel_ = 0;        // $2101: Object size/data area
+    uint8_t bgmode_ = 0;       // $2105: BG mode/char size
+    uint8_t mosaic_ = 0;       // $2106: Mosaic
+    uint8_t bg_sc_[4] = {0};   // $2107–$210A: BGnSC tilemap base
+    uint8_t bg_nba_[2] = {0};  // $210B–$210C: BGnNBA tile data base
+    uint16_t bg_hofs_[4] = {0}; // $210D–$2110: BGnHOFS
+    uint8_t bg_hofs_latch_[4] = {0}; // Latch for low byte
+    bool bg_hofs_latch_state_[4] = {true, true, true, true}; // true: next write is low byte
+    uint16_t bg_vofs_[4] = {0}; // $2111–$2114: BGnVOFS
+    uint8_t vmain_ = 0;        // $2115: VRAM increment mode
+    uint16_t vram_addr_ = 0;   // $2116/$2117: VRAM address
+    uint8_t cgram_addr_ = 0;   // $2121: CGRAM address
+    uint8_t tm_ = 0;           // $212C: Main screen designation
+    uint8_t ts_ = 0;           // $212D: Sub screen designation
+    // ... add more as needed for $2100–$213F ...
+    // TODO: Add windowing, color math, mode 7, and status registers
 
-    // PPU Control Register
-    union {
-        struct {
-            uint8_t nametable_x : 1;
-            uint8_t nametable_y : 1;
-            uint8_t vram_increment : 1;
-            uint8_t sprite_pattern_addr : 1;
-            uint8_t bg_pattern_addr : 1;
-            uint8_t sprite_size : 1;
-            uint8_t master_slave : 1; // Unused
-            uint8_t nmi_enable : 1;
-        };
-        uint8_t reg = 0;
-    } control;
+    // --- BG tilemap/tile data base helpers ---
+public:
+    uint32_t get_bg_tilemap_base(int bg) const;
+    uint32_t get_bg_tiledata_base(int bg) const;
+    uint8_t get_bgmode() const { return bgmode_; }
 
-    // PPU Mask Register
-    union {
-        struct {
-            uint8_t greyscale : 1;
-            uint8_t show_bg_leftmost : 1;
-            uint8_t show_sprites_leftmost : 1;
-            uint8_t show_bg : 1;
-            uint8_t show_sprites : 1;
-            uint8_t emphasize_red : 1;
-            uint8_t emphasize_green : 1;
-            uint8_t emphasize_blue : 1;
-        };
-        uint8_t reg = 0;
-    } mask;
+    // --- OAM attribute parsing ---
+    struct SpriteAttr {
+        uint8_t y;
+        uint8_t tile;
+        uint8_t attr;
+        uint8_t x_low;
+        uint8_t x_high;
+        uint8_t size;
+        // Add more fields as needed
+    };
+    SpriteAttr parse_sprite_attr(int index) const;
 
-    // PPU Status Register
-    union {
-        struct {
-            uint8_t unused : 5;
-            uint8_t sprite_overflow : 1;
-            uint8_t sprite_zero_hit : 1;
-            uint8_t vertical_blank : 1;
-        };
-        uint8_t reg = 0;
-    } status;
+    // --- CGRAM palette access ---
+    uint16_t get_cgram_color(int index) const; // Returns 15-bit SNES color
 
-    uint8_t oam_addr = 0;
+    // --- Scanline/frame timing and rendering state ---
+public:
+    static constexpr int kScreenWidth = 256;
+    static constexpr int kScreenHeight = 224;
+    static constexpr int kTotalScanlines = 262; // NTSC
+    static constexpr int kDotsPerScanline = 341; // SNES typical
 
-    // DMA
-    bool dma_transfer = false;
-    uint8_t dma_page = 0x00;
-    uint8_t dma_addr = 0x00;
-    uint8_t dma_data = 0x00;
+    int scanline_ = 0;
+    int dot_ = 0;
+    int frame_ = 0;
+    bool vblank_ = false;
+    bool hblank_ = false;
 
+    // Simple framebuffer: 256x224, 16-bit SNES color
+    uint16_t framebuffer_[kScreenHeight][kScreenWidth] = {};
 
-    // Rendering state
-    int16_t scanline = -1;
-    int16_t cycle = 0;
+    // Timing and rendering stubs
+    void step_dot();
+    void step_scanline();
+    void step_frame();
+    void render_scanline_stub();
+    void render_sprite_stub();
+    void render_bg_scanline_stub(int scanline); // New: BG scanline rendering stub
 
-    // Screen buffer
-    std::vector<uint32_t> screen;
-    // System palette
-    std::array<uint32_t, 64> palette_colors;
+    // Expose flags for testing
+    bool get_vblank() const { return vblank_; }
+    bool get_hblank() const { return hblank_; }
+    int get_scanline() const { return scanline_; }
+    int get_dot() const { return dot_; }
+    int get_frame() const { return frame_; }
+    const uint16_t* get_framebuffer_row(int y) const { return framebuffer_[y]; }
 
-    // PPU Bus
-    uint8_t ppu_read(uint16_t addr);
-    void ppu_write(uint16_t addr, uint8_t data);
+    // --- Sprite scanline evaluation (stub) ---
+    std::vector<int> get_sprites_on_scanline(int scanline) const;
+
+    void export_framebuffer_ppm(const std::string& filename) const;
 };
-
-#endif // PPU_HPP

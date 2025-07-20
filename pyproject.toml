@@ -19,12 +19,13 @@ dependencies = [
 pysnes = "pysnes:cli"
 
 [build-system]
-requires = ["scikit-build-core", "pybind11"]
+requires = ["scikit-build-core", "pybind11", "cmake"]
 build-backend = "scikit_build_core.build"
 
 [tool.scikit-build]
 wheel.packages = ["src/pysnes"]
-install.strip = false
 
-[tool.scikit-build.cmake.define]
-CMAKE_INTERPROCEDURAL_OPTIMIZATION = "OFF"
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+]
