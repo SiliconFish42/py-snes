@@ -8,12 +8,16 @@ on:
 
 jobs:
   lint:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: psf/black@stable
 
   build-and-test:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     needs: lint
     steps:
