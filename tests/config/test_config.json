@@ -76,6 +76,118 @@
           "completion_addresses": [8512, 8513]
         }
       }
+    },
+    "illegal_opcodes": {
+      "description": "Illegal/undocumented opcode tests",
+      "file_patterns": ["illegal-opcode-*.sfc"],
+      "test_parameters": {
+        "max_cycles": 100000,
+        "timeout_ms": 10000,
+        "verbose_output": false,
+        "detection_patterns": {
+          "success": ["ILLEGAL_OK", "SUCCESS"],
+          "failure": ["ILLEGAL_FAIL", "ERROR"],
+          "completion_addresses": [9000]
+        }
+      }
+    },
+    "decimal_mode": {
+      "description": "Decimal mode ADC/SBC tests",
+      "file_patterns": ["decimal-mode-*.sfc"],
+      "test_parameters": {
+        "max_cycles": 100000,
+        "timeout_ms": 10000,
+        "verbose_output": false,
+        "detection_patterns": {
+          "success": ["DECIMAL_OK", "SUCCESS"],
+          "failure": ["DECIMAL_FAIL", "ERROR"],
+          "completion_addresses": [9001]
+        }
+      }
+    },
+    "interrupts": {
+      "description": "NMI/IRQ/RESET interrupt tests",
+      "file_patterns": ["interrupt-*.sfc"],
+      "test_parameters": {
+        "max_cycles": 100000,
+        "timeout_ms": 10000,
+        "verbose_output": false,
+        "detection_patterns": {
+          "success": ["INTERRUPT_OK", "SUCCESS"],
+          "failure": ["INTERRUPT_FAIL", "ERROR"],
+          "completion_addresses": [9002]
+        }
+      }
+    },
+    "lorom": {
+      "description": "LoROM mapping tests",
+      "file_patterns": ["lorom-*.sfc"],
+      "test_parameters": {
+        "max_cycles": 100000,
+        "timeout_ms": 10000,
+        "verbose_output": false,
+        "detection_patterns": {
+          "success": ["LOROM_OK", "SUCCESS"],
+          "failure": ["LOROM_FAIL", "ERROR"],
+          "completion_addresses": [9003]
+        }
+      }
+    },
+    "hirom": {
+      "description": "HiROM mapping tests",
+      "file_patterns": ["hirom-*.sfc"],
+      "test_parameters": {
+        "max_cycles": 100000,
+        "timeout_ms": 10000,
+        "verbose_output": false,
+        "detection_patterns": {
+          "success": ["HIROM_OK", "SUCCESS"],
+          "failure": ["HIROM_FAIL", "ERROR"],
+          "completion_addresses": [9004]
+        }
+      }
+    },
+    "header_corruption": {
+      "description": "Corrupted header handling tests",
+      "file_patterns": ["header-corrupt-*.sfc"],
+      "test_parameters": {
+        "max_cycles": 100000,
+        "timeout_ms": 10000,
+        "verbose_output": false,
+        "detection_patterns": {
+          "success": ["HEADER_OK", "SUCCESS"],
+          "failure": ["HEADER_FAIL", "ERROR"],
+          "completion_addresses": [9005]
+        }
+      }
+    },
+    "sram": {
+      "description": "SRAM save/load tests",
+      "file_patterns": ["sram-*.sfc"],
+      "test_parameters": {
+        "max_cycles": 100000,
+        "timeout_ms": 10000,
+        "verbose_output": false,
+        "detection_patterns": {
+          "success": ["SRAM_OK", "SUCCESS"],
+          "failure": ["SRAM_FAIL", "ERROR"],
+          "completion_addresses": [9006]
+        }
+      }
+    },
+    "apu_advanced": {
+      "description": "Advanced PPU feature tests (Mode 7, mosaic, windowing, raster)",
+      "file_patterns": ["ppu-adv-*.sfc", "mode7-*.sfc", "raster-*.sfc"],
+      "test_parameters": {
+        "max_cycles": 2000000,
+        "timeout_ms": 45000,
+        "verbose_output": false,
+        "detection_patterns": {
+          "success": ["PPU_ADV_OK", "SUCCESS"],
+          "failure": ["PPU_ADV_FAIL", "ERROR"],
+          "completion_addresses": [9007]
+        }
+      }
     }
   },
   "test_suites": {

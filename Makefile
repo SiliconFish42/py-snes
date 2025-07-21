@@ -32,14 +32,23 @@ build_tests:
 # Run all tests (Python and C++)
 test: build build_tests
 	$(PYTHON) tests/scripts/run_comprehensive_tests.py
+	@echo "[DEBUG] Checking for C++ test binary at $(BUILD_DIR)/run_tests"
 	@if [ -f $(BUILD_DIR)/run_tests ]; then \
-		cd $(BUILD_DIR) && ./run_tests; \
+		echo "[DEBUG] Running C++/GTest tests..."; \
+		cd $(BUILD_DIR) && ./run_tests $(ARGS) \
 	else \
 		echo "C++ test binary not found, skipping C++/GTest tests."; \
 	fi
 
-# Alias for test
-run_tests: test
+# Usage: make run_tests ARGS="--gtest_filter=PPUTest.BGPriorityLogic"
+run_tests:
+	@if [ ! -d $(BUILD_DIR) ] || [ ! -f $(BUILD_DIR)/run_tests ]; then \
+		$(MAKE) build_tests; \
+	fi
+	cd $(BUILD_DIR) && ./run_tests $(ARGS)
+
+# Make clean before running tests
+clean_tests: clean run_tests
 
 # Clean build and test outputs
 clean:

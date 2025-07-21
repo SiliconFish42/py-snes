@@ -85,6 +85,7 @@ public:
     // --- Framebuffer and Output ---
     void export_framebuffer_ppm(const std::string& filename) const;
     const uint16_t* get_framebuffer_row(int y) const { return framebuffer_[y]; }
+    std::vector<uint8_t> get_framebuffer_rgb() const;
 
     // --- State Getters (for tests/inspection) ---
     bool get_vblank() const { return vblank_; }

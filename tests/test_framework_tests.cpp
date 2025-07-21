@@ -271,3 +271,16 @@ TEST_F(TestFrameworkWithROMsTest, MultipleROMExecution) {
     // Print summary
     framework.print_results(results);
 }
+
+// --- Coverage Gap Stubs ---
+TEST_F(TestFrameworkTest, ReportingOutputCorrectness) {
+    GTEST_SKIP() << "Not yet implemented: reporting output correctness test stub.";
+}
+
+TEST_F(TestFrameworkTest, ErrorHandlingEdgeCases) {
+    GTEST_SKIP() << "Not yet implemented: error handling edge case test stub.";
+}
+
+TEST_F(TestFrameworkTest, ConfigEdgeCases) {
+    GTEST_SKIP() << "Not yet implemented: config edge case test stub.";
+}

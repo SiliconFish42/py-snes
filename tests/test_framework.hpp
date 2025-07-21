@@ -135,6 +135,17 @@ public:
     // For now, this is a placeholder
 };
 
+// --- Coverage Gap Stubs ---
+// Placeholder for APU test runner
+class APUTestRunner : public TestROMRunner {
+private:
+    bool detect_test_completion() override { return false; }
+    bool detect_test_failure() override { return false; }
+    void log_execution_state() override {}
+public:
+    APUTestRunner() = default;
+};
+
 // Test framework manager
 class TestFramework {
 private:

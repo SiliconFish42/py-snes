@@ -8,6 +8,8 @@
 #include "cartridge.hpp"
 #include <filesystem> // Added for std::filesystem::exists
 #include <cstdlib> // For getenv
+#include <sstream>
+#include <map>
 
 // Utility to robustly find a ROM file
 std::string find_rom_path(const std::string& rom_name) {
@@ -262,4 +264,104 @@ TEST_F(ROMTest, ROMSpecificTests) {
             printf("Progress: %d cycles, PC=0x%06X\n", i, cpu->pc);
         }
     }
+}
+
+// --- Coverage Gap Stubs ---
+TEST_F(ROMTest, LoROMMapping) {
+    GTEST_SKIP() << "Not yet implemented: LoROM mapping test stub.";
+}
+
+TEST_F(ROMTest, HiROMMapping) {
+    GTEST_SKIP() << "Not yet implemented: HiROM mapping test stub.";
+}
+
+TEST_F(ROMTest, CorruptedHeaderHandling) {
+    GTEST_SKIP() << "Not yet implemented: corrupted header handling test stub.";
+}
+
+TEST_F(ROMTest, SRAMHandling) {
+    GTEST_SKIP() << "Not yet implemented: SRAM handling test stub.";
+}
+
+// --- Automated cputest ROM fine-grained test ---
+
+// Helper to load test descriptions from tests-basic.txt or tests-full.txt
+std::map<int, std::string> load_cputest_descriptions(const std::string& txt_path) {
+    std::map<int, std::string> descs;
+    std::ifstream f(txt_path);
+    if (!f.is_open()) return descs;
+    std::string line;
+    int idx = 0;
+    while (std::getline(f, line)) {
+        if (!line.empty() && line.find("Test ") == 0) {
+            descs[idx++] = line;
+        }
+    }
+    return descs;
+}
+
+// New helper class for automated cputest running (not derived from ::testing::Test)
+class CputestRunner {
+public:
+    std::shared_ptr<Bus> bus;
+    std::shared_ptr<CPU> cpu;
+    std::shared_ptr<Cartridge> cart;
+
+    CputestRunner() {
+        bus = std::make_shared<Bus>();
+        cpu = std::make_shared<CPU>();
+        cpu->connect_bus(bus);
+        bus->connect_cpu(cpu);
+    }
+
+    bool load_rom(const std::string& filename) {
+        cart = std::make_shared<Cartridge>(filename);
+        bus->connect_cartridge(cart);
+        return cart->is_loaded();
+    }
+
+    uint8_t read_memory(uint32_t addr) { return bus->read(addr); }
+    void run_cpu_cycles(uint32_t cycles) { for (uint32_t i = 0; i < cycles; i++) cpu->step(); }
+};
+
+void run_cputest_rom(const std::string& rom_name, const std::string& txt_name, int max_cycles) {
+    printf("\n[CPUTEST] Running %s\n", rom_name.c_str());
+    CputestRunner test;
+    ASSERT_TRUE(test.load_rom(find_rom_path(rom_name)));
+    test.cpu->reset();
+    auto descs = load_cputest_descriptions(txt_name);
+    int fail_test_num = -1;
+    int cycles = 0;
+    bool test_completed = false;
+    bool error_detected = false;
+    for (; cycles < max_cycles && !test_completed && !error_detected; ++cycles) {
+        test.cpu->step();
+        uint8_t status = test.read_memory(0x7E0000);
+        if (status == 0x00) {
+            test_completed = true;
+        } else if (status == 0xFF) {
+            error_detected = true;
+            // test_num is likely at $000E (zero page)
+            fail_test_num = test.read_memory(0x000E);
+        }
+    }
+    if (test_completed) {
+        printf("[CPUTEST] All tests passed (%s) in %d cycles\n", rom_name.c_str(), cycles);
+        SUCCEED();
+    } else if (error_detected) {
+        std::string desc = descs.count(fail_test_num) ? descs[fail_test_num] : "<unknown test>";
+        printf("[CPUTEST] FAILED: Test #%d: %s\n", fail_test_num, desc.c_str());
+        ADD_FAILURE() << "CPUTEST failed at test #" << fail_test_num << ": " << desc;
+    } else {
+        printf("[CPUTEST] TIMEOUT: Test did not complete in %d cycles\n", max_cycles);
+        ADD_FAILURE() << "CPUTEST timeout after " << max_cycles << " cycles";
+    }
+}
+
+TEST(CPUTestROM, CPUTestBasic) {
+    run_cputest_rom("cputest-basic.sfc", "tests/roms/cputest/tests-basic.txt", 1000000);
+}
+
+TEST(CPUTestROM, CPUTestFull) {
+    run_cputest_rom("cputest-full.sfc", "tests/roms/cputest/tests-full.txt", 2000000);
 }

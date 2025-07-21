@@ -644,3 +644,20 @@ void PPU::render_mode7_background(int scanline) {
     // Stub: Mode 7 rendering not implemented yet
     (void)scanline;
 }
+
+std::vector<uint8_t> PPU::get_framebuffer_rgb() const {
+    std::vector<uint8_t> rgb;
+    rgb.reserve(kScreenHeight * kScreenWidth * 3);
+    for (int y = 0; y < kScreenHeight; ++y) {
+        for (int x = 0; x < kScreenWidth; ++x) {
+            uint16_t color = framebuffer_[y][x] & 0x7FFF; // 15-bit BGR
+            uint8_t r = (color & 0x1F) << 3;      // 5 bits red
+            uint8_t g = ((color >> 5) & 0x1F) << 3; // 5 bits green
+            uint8_t b = ((color >> 10) & 0x1F) << 3; // 5 bits blue
+            rgb.push_back(r);
+            rgb.push_back(g);
+            rgb.push_back(b);
+        }
+    }
+    return rgb;
+}

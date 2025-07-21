@@ -695,3 +695,40 @@ TEST_F(CPUHelpersStackTest, PushPop16_SequenceMaintainsStackPointer) {
     EXPECT_EQ(val, 0xCAFE);
     EXPECT_EQ(cpu->stkp, 0x01FD);
 }
+
+// --- Coverage Gap Stubs ---
+TEST_F(LDATest, IllegalOpcodeHandling) {
+    GTEST_SKIP() << "Not yet implemented: illegal opcode handling test stub.";
+}
+
+TEST_F(LDATest, DecimalModeADC) {
+    GTEST_SKIP() << "Not yet implemented: ADC in decimal mode test stub.";
+}
+
+TEST_F(LDATest, DecimalModeSBC) {
+    GTEST_SKIP() << "Not yet implemented: SBC in decimal mode test stub.";
+}
+
+TEST_F(LDATest, InterruptHandlingNMI) {
+    GTEST_SKIP() << "Not yet implemented: NMI interrupt handling test stub.";
+}
+
+TEST_F(LDATest, InterruptHandlingIRQ) {
+    GTEST_SKIP() << "Not yet implemented: IRQ interrupt handling test stub.";
+}
+
+TEST_F(LDATest, InterruptHandlingRESET) {
+    GTEST_SKIP() << "Not yet implemented: RESET interrupt handling test stub.";
+}
+
+TEST_F(LDATest, WAI_STP_Instruction) {
+    GTEST_SKIP() << "Not yet implemented: WAI/STP instruction test stub.";
+}
+
+TEST_F(LDATest, XCE_EmulationNativeTransition) {
+    GTEST_SKIP() << "Not yet implemented: XCE emulation/native mode transition test stub.";
+}
+
+TEST_F(LDATest, EmulationModeEdgeCases) {
+    GTEST_SKIP() << "Not yet implemented: emulation mode edge case test stub.";
+}

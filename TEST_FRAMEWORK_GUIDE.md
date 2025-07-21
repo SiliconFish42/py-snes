@@ -181,3 +181,37 @@ The framework detects test completion/failure using:
 - **Status bytes at addresses:**
   - `0x2000` = 0x01 (success)
   - `0x2001`
+
+## New Test Types and Coverage Stubs (2024)
+
+### Unit Test Coverage Gaps (Stubs Added)
+- CPU: Illegal opcodes, decimal mode, interrupts (NMI/IRQ/RESET), WAI/STP, XCE, emulation mode transitions
+- PPU: Mode 7, mosaic, windowing, raster effects, mid-frame register changes, timing accuracy
+- ROM: LoROM/HiROM mapping, header corruption, SRAM
+- APU: Placeholder for future unit/ROM-based tests
+- Python: Input handling, state save/load
+- Framework: Reporting, error handling, config edge cases
+
+### ROM-Based Test Additions
+- `illegal_opcodes`: Tests for illegal/undocumented opcodes (ROM: `illegal-opcode-*.sfc`)
+- `decimal_mode`: Tests for decimal mode ADC/SBC (ROM: `decimal-mode-*.sfc`)
+- `interrupts`: NMI/IRQ/RESET interrupt tests (ROM: `interrupt-*.sfc`)
+- `lorom`/`hirom`: LoROM/HiROM mapping (ROM: `lorom-*.sfc`, `hirom-*.sfc`)
+- `header_corruption`: Corrupted header handling (ROM: `header-corrupt-*.sfc`)
+- `sram`: SRAM save/load (ROM: `sram-*.sfc`)
+- `apu_advanced`: Advanced PPU/APU features (ROM: `ppu-adv-*.sfc`, `mode7-*.sfc`, `raster-*.sfc`)
+
+### Adding New ROMs/Tests
+1. Place new ROM files in `tests/roms/`.
+2. Add a new entry in `tests/config/test_config.json` under `test_roms` with a unique key, description, file pattern, and detection patterns.
+3. Ensure the test runner scripts (`run_rom_tests.py`, `run_comprehensive_tests.py`) can discover and execute the new ROM/test.
+4. For unit tests, add new `TEST_F` or `TEST_P` cases in the appropriate C++ or Python test file. Use `GTEST_SKIP()` or `pytest.skip()` for stubs.
+
+### Interpreting Test Results
+- Skipped tests indicate coverage stubs for future implementation.
+- New ROM-based tests will appear in reports with their configured detection patterns.
+- CI/CD will fail if any required test fails (including new coverage areas once implemented).
+
+### Updating the Framework
+- Update this guide and `test_config.json` whenever new test types or ROMs are added.
+- Ensure all new tests are integrated into CI/CD and reporting.

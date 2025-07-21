@@ -4,15 +4,14 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
-from . import pysnes_cpp
-
 
 class SnesEnv(gym.Env):
     metadata = {"render.modes": ["human"], "render_fps": 60}
 
     def __init__(self, rom_path):
         super(SnesEnv, self).__init__()
-        self.snes = pysnes_cpp.SNES()
+        from pysnes.snes import SNES
+        self.snes = SNES()
         self.snes.insert_cartridge(rom_path)
         self.snes.power_on()
 

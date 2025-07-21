@@ -15,6 +15,7 @@ class SNES {
 
     std::vector<uint32_t>& get_screen();
     void set_controller_state(int controller_num, uint8_t state);
+    std::vector<uint8_t> get_framebuffer_rgb();
 
   private:
     // This is the PIMPL pattern. All internal components

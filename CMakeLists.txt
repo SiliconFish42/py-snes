@@ -6,6 +6,9 @@ project(pysnes CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Ensure pybind11 uses modern FindPython
+set(PYBIND11_FINDPYTHON ON)
+
 # Find the necessary packages for the main library
 # Try to find pybind11, but don't require it for testing
 find_package(pybind11 QUIET)
@@ -22,13 +25,16 @@ if(pybind11_FOUND AND Python_FOUND)
         src/pysnes/snes/src/bus.cpp
         src/pysnes/snes/src/cartridge.cpp
         src/pysnes/snes/src/controller.cpp
+        src/pysnes/snes/src/cpu_instructions.cpp
+        src/pysnes/snes/src/cpu_helpers.cpp
+        src/pysnes/snes/src/cpu_addressing.cpp
     )
 
     # Add our local include directory
     target_include_directories(pysnes_cpp PRIVATE src/pysnes/snes/include)
 
-    # Install the final compiled library into the 'pysnes' package directory.
     install(TARGETS pysnes_cpp DESTINATION pysnes)
+
 else()
     message(STATUS "pybind11 or Python not found - skipping Python extension")
 endif()
@@ -79,6 +85,7 @@ add_executable(
     src/pysnes/snes/src/ppu.cpp
     src/pysnes/snes/src/controller.cpp
     src/pysnes/snes/src/cartridge.cpp
+    src/pysnes/snes/src/snes.cpp
 )
 
 # Ensure the executable is built in the build directory only

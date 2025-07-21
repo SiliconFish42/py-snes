@@ -2,6 +2,7 @@
 #include "../src/pysnes/snes/include/ppu.hpp"
 #include <fstream>
 #include <cstdio>
+#include <numeric> // Required for std::accumulate
 
 class PPUTest : public ::testing::Test {
 protected:
@@ -489,4 +490,40 @@ TEST_F(PPUTest, ExportFramebufferPPMWritesPPMFile) {
     EXPECT_GE(file_size, expected_size - 16); // Allow for whitespace differences
     ifs.close();
     std::remove(filename.c_str());
+}
+
+TEST_F(PPUTest, FramebufferNotAllZerosAfterRenderScanlineStub) {
+    // Call render_scanline_stub for all visible scanlines
+    for (int scanline = 0; scanline < PPU::kScreenHeight; ++scanline) {
+        ppu.render_scanline_stub();
+        ppu.step_scanline(); // advance to next scanline
+    }
+    // Retrieve framebuffer as RGB
+    auto fb = ppu.get_framebuffer_rgb();
+    // Check that the framebuffer is the correct size
+    EXPECT_EQ(fb.size(), 224 * 256 * 3);
+    // Check that not all values are zero
+    int nonzero_count = std::accumulate(fb.begin(), fb.end(), 0, [](int acc, uint8_t v) { return acc + (v != 0); });
+    EXPECT_GT(nonzero_count, 0) << "Framebuffer appears to be all zeros after render_scanline_stub";
+}
+
+// --- Coverage Gap Stubs ---
+TEST_F(PPUTest, BGMode7AffineTransform) {
+    GTEST_SKIP() << "Not yet implemented: Mode 7 affine transform test stub.";
+}
+
+TEST_F(PPUTest, BGModeMosaicWindowing) {
+    GTEST_SKIP() << "Not yet implemented: BG mosaic/windowing test stub.";
+}
+
+TEST_F(PPUTest, RasterEffectMidFrameRegisterChange) {
+    GTEST_SKIP() << "Not yet implemented: mid-frame register change/raster effect test stub.";
+}
+
+TEST_F(PPUTest, SpriteOverflowPriorityEdgeCases) {
+    GTEST_SKIP() << "Not yet implemented: sprite overflow/priority edge case test stub.";
+}
+
+TEST_F(PPUTest, PPUPreciseTimingAccuracy) {
+    GTEST_SKIP() << "Not yet implemented: PPU timing accuracy test stub.";
 }

@@ -59,19 +59,20 @@
 
 1. **Write tests** for framebuffer output, video timing, and synchronization (mock or headless if needed)
 2. **Implement** framebuffer output (256x224, 512x448, RGB888 or similar)
-3. **Integrate** with SDL or similar for visual output (optional for headless test)
-4. **Synchronize** PPU and CPU timing (scanline, VBLANK, HBLANK)
-5. **Refactor/expand tests** for timing and output correctness
+3. **Expose framebuffer as a Python-accessible NumPy array or buffer for RL/AI use**
+4. **(Optional)** Integrate with SDL, PyGame, or similar for real-time visual output (utility only, not core)
+5. **Synchronize** PPU and CPU timing (scanline, VBLANK, HBLANK)
+6. **Refactor/expand tests** for timing and output correctness
 
 **Status**: 🔄 IN PROGRESS
 
 - Basic framebuffer (256x224) implemented
 - PPM export functionality implemented
-- **VBLANK/HBLANK status register logic implemented and tested**
-- **NMI trigger at VBLANK implemented and tested**
-- **All PPU unit tests, including timing/status, are passing**
-- Need to implement full video output and CPU synchronization
-- **Next step: SDL integration for real-time framebuffer output**
+- VBLANK/HBLANK status register logic implemented and tested
+- NMI trigger at VBLANK implemented and tested
+- All PPU unit tests, including timing/status, are passing
+- **Next step: Expose framebuffer as a Python-accessible NumPy array or buffer for RL/AI workflows**
+- **Real-time display (SDL, PyGame, etc.) will be an optional, decoupled utility**
 
 ## 📋 Phase 5: Advanced Features and Edge Cases (PLANNED)
 
@@ -148,4 +149,5 @@
 - Implemented NMI trigger at the start of VBLANK (scanline 224)
 - Added and refined unit tests for PPU timing and status register behavior
 - All PPU and regression tests are passing
-- Ready to proceed with SDL integration for real-time framebuffer display
+- **Design decision:** For RL/AI, the primary video output will be a Python-accessible framebuffer (NumPy array or buffer). Real-time display (SDL, PyGame, etc.) will be optional and not a core dependency, to ensure headless and cloud/CI compatibility.
+- Ready to proceed with Pythonic framebuffer output and optional visualization utilities
