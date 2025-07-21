@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 #include <fstream>
+#include "bus.hpp"
+#include "cpu.hpp"
 
 PPU::PPU() {
     reset();
@@ -185,9 +187,13 @@ uint8_t PPU::read_register(uint16_t addr) {
             return result;
         }
         // $213C–$213F: Status registers
-        case 0x213C: case 0x213D: case 0x213E: case 0x213F:
-            // TODO: Implement status register logic
-            return 0;
+        case 0x213C: case 0x213D: case 0x213E: case 0x213F: {
+            // Bit 7: VBLANK, Bit 6: HBLANK (simplified)
+            uint8_t status = 0;
+            if (vblank_) status |= 0x80;
+            if (hblank_) status |= 0x40;
+            return status;
+        }
         default:
             // Unmapped or open bus
             return 0;
@@ -414,6 +420,10 @@ void PPU::step_scanline() {
     if (scanline_ == kScreenHeight) {
         // Start of VBlank
         render_sprite_stub();
+        // Trigger NMI on CPU at start of VBLANK
+        if (bus_ && bus_->get_cpu()) {
+            bus_->get_cpu()->nmi();
+        }
     }
     if (scanline_ >= kTotalScanlines) {
         scanline_ = 0;
@@ -562,3 +572,75 @@ void PPU::fetch_sprites() {
     // Stub
 }
 */
+
+void PPU::render_full_scanline(int scanline) {
+    if (scanline < 0 || scanline >= kScreenHeight) return;
+
+    // Temporary per-pixel candidate for BG color/priority
+    PixelInfo bg_candidate[kScreenWidth] = {};
+
+    int bgmode = bgmode_ & 0x07;
+    if (bgmode == 0) {
+        // Render BGs in order: BG0 (lowest) to BG3 (highest)
+        for (int bg = 0; bg < 4; ++bg) {
+            if (tm_ & (1 << bg)) {
+                // For each BG, fill in candidates for non-transparent pixels
+                PixelInfo this_bg[kScreenWidth] = {};
+                render_mode0_background(bg, scanline, this_bg);
+                for (int x = 0; x < kScreenWidth; ++x) {
+                    // If this BG pixel is non-transparent, overwrite previous
+                    if (!this_bg[x].transparent) {
+                        bg_candidate[x] = this_bg[x];
+                    }
+                }
+            }
+        }
+        // Write resolved color to framebuffer
+        for (int x = 0; x < kScreenWidth; ++x) {
+            framebuffer_[scanline][x] = bg_candidate[x].color;
+        }
+    } else if (bgmode == 7) {
+        render_mode7_background(scanline);
+    }
+    // TODO: Add other BG modes
+}
+
+// Modified render_mode0_background: fills PixelInfo array instead of framebuffer
+void PPU::render_mode0_background(int bg, int scanline, PixelInfo* out) {
+    int tilemap_base = get_bg_tilemap_base(bg);
+    int tiledata_base = get_bg_tiledata_base(bg);
+    int hscroll = bg_hofs_[bg] & 0x1FF;
+    int vscroll = bg_vofs_[bg] & 0x1FF;
+    int tile_y = ((scanline + vscroll) / 8) % 32;
+    for (int x = 0; x < kScreenWidth; ++x) {
+        int tile_x = ((x + hscroll) >> 3) % 32;
+        int map_addr = tilemap_base + 2 * (tile_y * 32 + tile_x);
+        uint8_t tile_lo = vram_[map_addr % vram_.size()];
+        uint8_t tile_hi = vram_[(map_addr + 1) % vram_.size()];
+        uint16_t tile_index = tile_lo | ((tile_hi & 0x03) << 8);
+        int palette = (tile_hi >> 2) & 0x07;
+        int tile_addr = tiledata_base + tile_index * 16;
+        int y_in_tile = (scanline + vscroll) % 8;
+        uint8_t bp0 = vram_[(tile_addr + y_in_tile) % vram_.size()];
+        uint8_t bp1 = vram_[(tile_addr + y_in_tile + 8) % vram_.size()];
+        int x_in_tile = 7 - ((x + hscroll) & 7);
+        int color_index = ((bp1 >> x_in_tile) & 1) << 1 | ((bp0 >> x_in_tile) & 1);
+        if (color_index > 0) {
+            int cgram_index = palette * 4 + color_index;
+            out[x].color = get_cgram_color(cgram_index);
+            out[x].priority = bg;
+            out[x].transparent = false;
+            out[x].bg_layer = bg;
+        } else {
+            out[x].color = 0;
+            out[x].priority = bg;
+            out[x].transparent = true;
+            out[x].bg_layer = bg;
+        }
+    }
+}
+
+void PPU::render_mode7_background(int scanline) {
+    // Stub: Mode 7 rendering not implemented yet
+    (void)scanline;
+}

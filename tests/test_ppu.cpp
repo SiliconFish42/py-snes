@@ -176,13 +176,18 @@ TEST_F(PPUTest, CGRAMColorFetch) {
     EXPECT_EQ(ppu.get_cgram_color(256), 0);
 }
 
+// Helper for test: fill framebuffer with a pattern
+static void fill_framebuffer_for_test(PPU& ppu, uint16_t value) {
+    for (int y = 0; y < PPU::kScreenHeight; ++y) {
+        uint16_t* row = const_cast<uint16_t*>(ppu.get_framebuffer_row(y));
+        for (int x = 0; x < PPU::kScreenWidth; ++x) {
+            row[x] = value;
+        }
+    }
+}
+
 TEST_F(PPUTest, ScanlineFrameTiming) {
-    // Step through one frame and check scanline/dot/frame/vblank/hblank
-    ppu.scanline_ = 0;
-    ppu.dot_ = 0;
-    ppu.frame_ = 0;
-    ppu.vblank_ = false;
-    ppu.hblank_ = false;
+    ppu.reset();
     int vblank_start = PPU::kScreenHeight;
     int vblank_end = PPU::kTotalScanlines;
     int total_dots = PPU::kTotalScanlines * PPU::kDotsPerScanline;
@@ -207,8 +212,8 @@ TEST_F(PPUTest, ScanlineFrameTiming) {
 
 TEST_F(PPUTest, RenderScanlineStubWritesFramebuffer) {
     // Step one scanline and check framebuffer row is filled with expected value
-    ppu.scanline_ = 10;
-    ppu.dot_ = 0;
+    ppu.reset();
+    for (int i = 0; i < 10; ++i) ppu.step_scanline();
     ppu.render_scanline_stub();
     const uint16_t* row = ppu.get_framebuffer_row(10);
     for (int x = 0; x < PPU::kScreenWidth; ++x) {
@@ -218,12 +223,13 @@ TEST_F(PPUTest, RenderScanlineStubWritesFramebuffer) {
 
 TEST_F(PPUTest, RenderSpriteStubWritesFramebuffer) {
     // Call render_sprite_stub and check for white square at (120,100)
+    ppu.reset();
     ppu.render_sprite_stub();
     for (int dy = 0; dy < 16; ++dy) {
         for (int dx = 0; dx < 16; ++dx) {
             int y = 100 + dy, x = 120 + dx;
             if (y < PPU::kScreenHeight && x < PPU::kScreenWidth) {
-                EXPECT_EQ(ppu.framebuffer_[y][x], 0x7FFF);
+                EXPECT_EQ(ppu.get_framebuffer_row(y)[x], 0x7FFF);
             }
         }
     }
@@ -422,13 +428,45 @@ TEST_F(PPUTest, SpriteScanlineEvaluation_YWrapping) {
     }
 }
 
+TEST_F(PPUTest, StatusRegisterVBlankHBlankBits) {
+    ppu.reset();
+    // Step to the start of the last visible scanline
+    int scanline_start = (PPU::kScreenHeight - 1) * PPU::kDotsPerScanline;
+    for (int i = 0; i < scanline_start; ++i) {
+        ppu.step_dot();
+    }
+    // For the last visible scanline, check status bits for each dot BEFORE stepping
+    for (int dot = 0; dot < PPU::kDotsPerScanline; ++dot) {
+        uint8_t status = ppu.read_register(0x213C);
+        if (dot >= PPU::kDotsPerScanline - 40) {
+            EXPECT_EQ(status & 0x40, 0x40) << "dot=" << dot;
+        } else {
+            EXPECT_EQ(status & 0x40, 0x00) << "dot=" << dot;
+        }
+        EXPECT_EQ(status & 0x80, 0x00) << "dot=" << dot; // VBLANK should not be set yet
+        ppu.step_dot();
+    }
+    // At the start of the next scanline (scanline 224, dot 0), VBLANK should be set
+    uint8_t status = ppu.read_register(0x213C);
+    EXPECT_EQ(status & 0x80, 0x80) << "VBLANK should be set at start of scanline 224";
+    // HBLANK should be clear at dot 0
+    EXPECT_EQ(status & 0x40, 0x00) << "HBLANK should be clear at start of scanline 224";
+    // Step through the first 40 dots of VBLANK scanline and check HBLANK
+    for (int dot = 0; dot < PPU::kDotsPerScanline; ++dot) {
+        uint8_t status = ppu.read_register(0x213C);
+        if (dot >= PPU::kDotsPerScanline - 40) {
+            EXPECT_EQ(status & 0x40, 0x40) << "dot=" << dot << " (VBLANK)";
+        } else {
+            EXPECT_EQ(status & 0x40, 0x00) << "dot=" << dot << " (VBLANK)";
+        }
+        EXPECT_EQ(status & 0x80, 0x80) << "dot=" << dot << " (VBLANK)";
+        ppu.step_dot();
+    }
+}
+
 TEST_F(PPUTest, ExportFramebufferPPMWritesPPMFile) {
     // Fill framebuffer with a test pattern (gradient)
-    for (int y = 0; y < PPU::kScreenHeight; ++y) {
-        for (int x = 0; x < PPU::kScreenWidth; ++x) {
-            ppu.framebuffer_[y][x] = ((x & 0x1F) | ((y & 0x1F) << 5) | ((x & 0x1F) << 10));
-        }
-    }
+    fill_framebuffer_for_test(ppu, 0x1234);
     const std::string filename = "test_framebuffer.ppm";
     ppu.export_framebuffer_ppm(filename);
     // Check file exists and header is correct

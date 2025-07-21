@@ -13,7 +13,10 @@ Bus::Bus() {
 Bus::~Bus() {}
 
 void Bus::connect_cpu(std::shared_ptr<CPU> cpu_) { cpu = cpu_; }
-void Bus::connect_ppu(std::shared_ptr<PPU> ppu_) { ppu = ppu_; }
+void Bus::connect_ppu(std::shared_ptr<PPU> ppu_) { 
+    ppu = ppu_; 
+    if (ppu) ppu->set_bus(this);
+}
 void Bus::connect_cartridge(std::shared_ptr<Cartridge> cart_) { cart = cart_; }
 void Bus::connect_controller(int port, std::shared_ptr<Controller> ctrl_) {
     if (port >= 0 && port < 2) controllers[port] = ctrl_;
