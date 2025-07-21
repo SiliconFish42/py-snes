@@ -25,13 +25,23 @@ void PPU::reset() {
     obsel_ = 0;
     bgmode_ = 0;
     mosaic_ = 0;
-    for (int i = 0; i < 4; ++i) { bg_sc_[i] = 0; bg_hofs_[i] = 0; bg_vofs_[i] = 0; }
+    for (int i = 0; i < 4; ++i) { 
+        bg_sc_[i] = 0; 
+        bg_hofs_[i] = 0; 
+        bg_vofs_[i] = 0; 
+        bg_hofs_latch_[i] = 0;
+        bg_hofs_latch_state_[i] = true;
+    }
     for (int i = 0; i < 2; ++i) { bg_nba_[i] = 0; }
     vmain_ = 0;
     vram_addr_ = 0;
     cgram_addr_ = 0;
     tm_ = 0;
     ts_ = 0;
+    oam_addr_ = 0;
+    oam_priority_rotation_ = false;
+    oam_addr_msb_ = false;
+    oam_latch_low_ = true;
     // TODO: Reset windowing, color math, mode 7, and status registers
     // TODO: Reset internal PPU state and registers
 }
@@ -69,10 +79,11 @@ uint8_t PPU::read_register(uint16_t addr) {
         // $2100–$213F: PPU registers
         // $2100: INIDISP (Display Control)
         case 0x2100:
-            // TODO: Return last written value or open bus
+            // Write-only register - return 0 (open bus)
             return 0;
         // $2101: OBSEL (Object Size and Data Area Designation)
         case 0x2101:
+            // Write-only register - return 0 (open bus)
             return 0;
         // $2102/$2103: OAM Address (write-only)
         case 0x2102:
@@ -81,14 +92,27 @@ uint8_t PPU::read_register(uint16_t addr) {
         // $2104: OAM Data Write (write-only)
         case 0x2104:
             return 0;
-        // $2105–$2114: BG/scroll registers (write-only)
-        case 0x2105: case 0x2106: case 0x2107: case 0x2108:
-        case 0x2109: case 0x210A: case 0x210B: case 0x210C:
+        // $2105: BG mode/char size
+        case 0x2105:
+            // Write-only register - return 0 (open bus)
+            return 0;
+        // $2106: Mosaic
+        case 0x2106:
+            // Write-only register - return 0 (open bus)
+            return 0;
+        // $2107–$210A: BGnSC tilemap base (write-only)
+        case 0x2107: case 0x2108: case 0x2109: case 0x210A:
+            return 0;
+        // $210B–$210C: BGnNBA tile data base (write-only)
+        case 0x210B: case 0x210C:
+            return 0;
+        // $210D–$2114: BG scroll registers (write-only)
         case 0x210D: case 0x210E: case 0x210F: case 0x2110:
         case 0x2111: case 0x2112: case 0x2113: case 0x2114:
             return 0;
         // $2115: VMAIN (VRAM Address Increment Mode)
         case 0x2115:
+            // Write-only register - return 0 (open bus)
             return 0;
         // $2116/$2117: VRAM Address (write-only)
         case 0x2116: case 0x2117:
@@ -126,23 +150,38 @@ uint8_t PPU::read_register(uint16_t addr) {
             }
         case 0x2139: { // VRAM Data Read (low byte)
             uint8_t result = vram_read_buffer_ & 0xFF;
-            // Load buffer with word at current VRAM address (stub: use 0 for address)
-            vram_read_buffer_ = vram_[0] | (vram_[1] << 8); // TODO: use real VRAM address
-            // TODO: increment VRAM address as per VMAIN
+            // Load buffer with word at current VRAM address
+            vram_read_buffer_ = read_vram(vram_addr_) | (read_vram(vram_addr_ + 1) << 8);
+            // Increment VRAM address based on VMAIN
+            if (vmain_ & 0x80) {
+                // Fixed increment
+                vram_addr_ += (1 << ((vmain_ >> 4) & 0x07));
+            } else {
+                // Increment by 1
+                vram_addr_ += 1;
+            }
             return result;
         }
         case 0x213A: { // VRAM Data Read (high byte)
             uint8_t result = (vram_read_buffer_ >> 8) & 0xFF;
-            // Load buffer with word at current VRAM address (stub: use 0 for address)
-            vram_read_buffer_ = vram_[0] | (vram_[1] << 8); // TODO: use real VRAM address
-            // TODO: increment VRAM address as per VMAIN
+            // Load buffer with word at current VRAM address
+            vram_read_buffer_ = read_vram(vram_addr_) | (read_vram(vram_addr_ + 1) << 8);
+            // Increment VRAM address based on VMAIN
+            if (vmain_ & 0x80) {
+                // Fixed increment
+                vram_addr_ += (1 << ((vmain_ >> 4) & 0x07));
+            } else {
+                // Increment by 1
+                vram_addr_ += 1;
+            }
             return result;
         }
         case 0x213B: { // CGRAM Data Read
             uint8_t result = cgram_read_buffer_;
-            // Load buffer with byte at current CGRAM address (stub: use 0 for address)
-            cgram_read_buffer_ = cgram_[0]; // TODO: use real CGRAM address
-            // TODO: increment CGRAM address
+            // Load buffer with byte at current CGRAM address
+            cgram_read_buffer_ = read_cgram(cgram_addr_);
+            // Increment CGRAM address
+            cgram_addr_ = (cgram_addr_ + 1) & 0x1FF; // 9-bit address
             return result;
         }
         // $213C–$213F: Status registers
@@ -188,6 +227,9 @@ void PPU::write_register(uint16_t addr, uint8_t value) {
         case 0x2105: // BG mode/char size
             bgmode_ = value;
             break;
+        case 0x2106: // Mosaic
+            mosaic_ = value;
+            break;
         case 0x2107: case 0x2108: case 0x2109: case 0x210A: // BGnSC tilemap base
             bg_sc_[addr - 0x2107] = value;
             break;
@@ -209,8 +251,85 @@ void PPU::write_register(uint16_t addr, uint8_t value) {
             bg_hofs_latch_state_[bg] = !bg_hofs_latch_state_[bg];
             break;
         }
+        case 0x210E: { // BG2HOFS (horizontal scroll)
+            int bg = 1;
+            if (bg_hofs_latch_state_[bg]) {
+                bg_hofs_latch_[bg] = value;
+            } else {
+                bg_hofs_[bg] = (bg_hofs_latch_[bg] | ((value & 0x01) << 8));
+            }
+            bg_hofs_latch_state_[bg] = !bg_hofs_latch_state_[bg];
+            break;
+        }
+        case 0x210F: { // BG3HOFS (horizontal scroll)
+            int bg = 2;
+            if (bg_hofs_latch_state_[bg]) {
+                bg_hofs_latch_[bg] = value;
+            } else {
+                bg_hofs_[bg] = (bg_hofs_latch_[bg] | ((value & 0x01) << 8));
+            }
+            bg_hofs_latch_state_[bg] = !bg_hofs_latch_state_[bg];
+            break;
+        }
+        case 0x2110: { // BG4HOFS (horizontal scroll)
+            int bg = 3;
+            if (bg_hofs_latch_state_[bg]) {
+                bg_hofs_latch_[bg] = value;
+            } else {
+                bg_hofs_[bg] = (bg_hofs_latch_[bg] | ((value & 0x01) << 8));
+            }
+            bg_hofs_latch_state_[bg] = !bg_hofs_latch_state_[bg];
+            break;
+        }
         case 0x2111: // BG1VOFS (vertical scroll)
             bg_vofs_[0] = value;
+            break;
+        case 0x2112: // BG2VOFS (vertical scroll)
+            bg_vofs_[1] = value;
+            break;
+        case 0x2113: // BG3VOFS (vertical scroll)
+            bg_vofs_[2] = value;
+            break;
+        case 0x2114: // BG4VOFS (vertical scroll)
+            bg_vofs_[3] = value;
+            break;
+        case 0x2115: // VMAIN (VRAM Address Increment Mode)
+            vmain_ = value;
+            break;
+        case 0x2116: // VMADDL (VRAM Address low byte)
+            vram_addr_ = (vram_addr_ & 0xFF00) | value;
+            break;
+        case 0x2117: // VMADDH (VRAM Address high byte)
+            vram_addr_ = (vram_addr_ & 0x00FF) | (value << 8);
+            break;
+        case 0x2118: // VMDATAL (VRAM Data Write low byte)
+            write_vram(vram_addr_, value);
+            // Increment VRAM address based on VMAIN
+            if (vmain_ & 0x80) {
+                // Fixed increment
+                vram_addr_ += (1 << ((vmain_ >> 4) & 0x07));
+            } else {
+                // Increment by 1
+                vram_addr_ += 1;
+            }
+            break;
+        case 0x2119: // VMDATAH (VRAM Data Write high byte)
+            write_vram(vram_addr_, value);
+            // Increment VRAM address based on VMAIN
+            if (vmain_ & 0x80) {
+                // Fixed increment
+                vram_addr_ += (1 << ((vmain_ >> 4) & 0x07));
+            } else {
+                // Increment by 1
+                vram_addr_ += 1;
+            }
+            break;
+        case 0x2121: // CGADD (CGRAM Address)
+            cgram_addr_ = value;
+            break;
+        case 0x2122: // CGDATA (CGRAM Data Write)
+            write_cgram(cgram_addr_, value);
+            cgram_addr_ = (cgram_addr_ + 1) & 0x1FF; // 9-bit address
             break;
         case 0x212C: // Main screen designation (OBJ enable)
             tm_ = value;
@@ -313,8 +432,12 @@ void PPU::step_frame() {
 }
 
 void PPU::render_scanline_stub() {
-    // Replace stub: render Mode 0 BG1 scanline
-    render_bg_scanline_stub(scanline_);
+    // Simple stub that fills the current scanline with a pattern
+    if (scanline_ >= 0 && scanline_ < kScreenHeight) {
+        for (int x = 0; x < kScreenWidth; ++x) {
+            framebuffer_[scanline_][x] = (scanline_ & 0x1F) << 10;
+        }
+    }
 }
 
 void PPU::render_bg_scanline_stub(int scanline) {
@@ -362,9 +485,24 @@ std::vector<int> PPU::get_sprites_on_scanline(int scanline) const {
     for (int i = 0; i < 128; ++i) {
         auto attr = parse_sprite_attr(i);
         int y = attr.y;
-        int sprite_top = (y < 224) ? y : (y - 256); // SNES Y wrapping
+        
+        // Skip sprites with Y=0xFF (invisible sprites)
+        if (y == 0xFF) continue;
+        
+        // Handle Y wrapping: if Y >= 224, sprite wraps to top of screen
+        int sprite_top = (y < 224) ? y : (y - 256);
+        
+        // Check if sprite appears on this scanline
         for (int dy = 0; dy < sprite_size; ++dy) {
             int sprite_scanline = sprite_top + dy;
+            // Handle wrapping: if sprite_scanline < 0, it wraps to bottom
+            if (sprite_scanline < 0) {
+                sprite_scanline += 224;
+            }
+            // Also handle wrapping for sprites that extend past the bottom
+            if (sprite_scanline >= 224) {
+                sprite_scanline -= 224;
+            }
             if (sprite_scanline == scanline) {
                 indices.push_back(i);
                 break;

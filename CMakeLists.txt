@@ -7,25 +7,31 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Find the necessary packages for the main library
-find_package(pybind11 REQUIRED)
-find_package(Python COMPONENTS Interpreter Development REQUIRED)
+# Try to find pybind11, but don't require it for testing
+find_package(pybind11 QUIET)
+find_package(Python COMPONENTS Interpreter Development QUIET)
 
-# Define our Python extension module (commented out for now)
-pybind11_add_module(pysnes_cpp
-    src/pysnes/bindings.cpp
-    src/pysnes/snes/src/snes.cpp
-    src/pysnes/snes/src/cpu.cpp
-    src/pysnes/snes/src/ppu.cpp
-    src/pysnes/snes/src/bus.cpp
-    src/pysnes/snes/src/cartridge.cpp
-    src/pysnes/snes/src/controller.cpp
-)
+# Only configure Python extension if both pybind11 and Python are found
+if(pybind11_FOUND AND Python_FOUND)
+    message(STATUS "Found pybind11 and Python - building Python extension")
+    pybind11_add_module(pysnes_cpp
+        src/pysnes/bindings.cpp
+        src/pysnes/snes/src/snes.cpp
+        src/pysnes/snes/src/cpu.cpp
+        src/pysnes/snes/src/ppu.cpp
+        src/pysnes/snes/src/bus.cpp
+        src/pysnes/snes/src/cartridge.cpp
+        src/pysnes/snes/src/controller.cpp
+    )
 
-# Add our local include directory
-target_include_directories(pysnes_cpp PRIVATE src/pysnes/snes/include)
+    # Add our local include directory
+    target_include_directories(pysnes_cpp PRIVATE src/pysnes/snes/include)
 
-# Install the final compiled library into the 'pysnes' package directory.
-install(TARGETS pysnes_cpp DESTINATION pysnes)
+    # Install the final compiled library into the 'pysnes' package directory.
+    install(TARGETS pysnes_cpp DESTINATION pysnes)
+else()
+    message(STATUS "pybind11 or Python not found - skipping Python extension")
+endif()
 
 
 # --------------------- TESTING SETUP (FetchContent Method) --------------------
@@ -64,7 +70,7 @@ add_executable(
     tests/test_rom.cpp
     tests/test_framework.cpp
     tests/test_framework_tests.cpp
-    # tests/test_ppu.cpp
+    tests/test_ppu.cpp
     src/pysnes/snes/src/cpu.cpp
     src/pysnes/snes/src/cpu_addressing.cpp
     src/pysnes/snes/src/cpu_helpers.cpp

@@ -403,12 +403,19 @@ TEST_F(PPUTest, SpriteScanlineEvaluation_OverflowLimit) {
 
 TEST_F(PPUTest, SpriteScanlineEvaluation_YWrapping) {
     // Clear OAM to ensure only the intended sprite is present
-    for (int i = 0; i < 128 * 4; ++i) ppu.write_oam(i, 0xFF);
+    for (int i = 0; i < 544; ++i) ppu.write_oam(i, 0xFF);
     // Place a sprite at Y=223 (bottom of screen)
     ppu.write_oam(0, 223); // Y
     ppu.write_register(0x2101, 0x00); // 8x8 size
+    
     // Sprite should appear on scanline 223 and 0..6 (Y wrapping)
-    for (int s = 0; s < 8; ++s) {
+    // Check scanline 223 (should have sprite)
+    auto indices_223 = ppu.get_sprites_on_scanline(223);
+    EXPECT_EQ(indices_223.size(), 1);
+    EXPECT_EQ(indices_223[0], 0);
+    
+    // Check scanlines 0-6 (should have sprite due to wrapping)
+    for (int s = 0; s < 7; ++s) {
         auto indices = ppu.get_sprites_on_scanline(s);
         EXPECT_EQ(indices.size(), 1);
         EXPECT_EQ(indices[0], 0);
