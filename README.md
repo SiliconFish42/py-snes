@@ -17,7 +17,7 @@ This project is inspired by the architecture and goals of the excellent [nes-py]
 ## Current State
 
 - ✅ **CPU Core:** Complete and tested.
-- ⚙️ **PPU:** Basic structure and scanline logic implemented; advanced features in progress.
+- ⚙️ **PPU:** Basic structure, scanline logic, background/sprite rendering, and priority logic implemented (Phases 1-3 complete). Video output in progress. See [PPU_PLAN.md](docs/PPU_PLAN.md).
 - ✅ **Bus, Cartridge, Controller:** Fully functional for core emulation.
 - ✅ **Python & Gymnasium API:** Usable for RL/AI research.
 - ✅ **Testing:** Robust framework for unit, integration, and ROM-based tests.
@@ -109,7 +109,7 @@ To clean build and test outputs:
 make clean
 ```
 
-See [TEST_FRAMEWORK_GUIDE.md](TEST_FRAMEWORK_GUIDE.md) and [ROM_TESTING.md](ROM_TESTING.md) for detailed documentation.
+See [TEST_FRAMEWORK_GUIDE.md](docs/TEST_FRAMEWORK_GUIDE.md) and [ROM_TESTING.md](docs/ROM_TESTING.md) for detailed documentation.
 
 ## Contributing
 
@@ -119,7 +119,7 @@ Contributions are welcome! To get started:
 - Add or update tests as appropriate
 - Submit a pull request with a clear description of your changes
 
-See [DEV_PLAN.md](DEV_PLAN.md) and [TEST_PLAN.md](TEST_PLAN.md) for more information on project direction and testing strategy.
+See [docs/](docs/) for more information on project direction and testing strategy.
 
 ## Future Goals
 

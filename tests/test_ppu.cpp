@@ -527,3 +527,46 @@ TEST_F(PPUTest, SpriteOverflowPriorityEdgeCases) {
 TEST_F(PPUTest, PPUPreciseTimingAccuracy) {
     GTEST_SKIP() << "Not yet implemented: PPU timing accuracy test stub.";
 }
+TEST_F(PPUTest, BGMode1Rendering) {
+    // Setup: Mode 1, BG1 tilemap at 0x0000, tiledata at 0x1000
+    ppu.write_register(0x2105, 0x01); // Mode 1
+    ppu.write_register(0x2107, 0x00); // BG1SC: tilemap base 0x0000
+    ppu.write_register(0x210B, 0x01); // BG1NBA: tiledata base 0x1000
+    ppu.write_register(0x212C, 0x01); // Enable BG1 (TM)
+
+    // Create a 4bpp tile at 0x1000 (Tile 0)
+    // We want color index 15 (all 1s) for the first pixel (top-left)
+    // 4bpp format:
+    // bytes 0,1: bp0, bp1 for row 0
+    // bytes 16,17: bp2, bp3 for row 0
+    // To set top-left pixel (bit 7) to 1 in all planes:
+    ppu.write_vram(0x1000, 0x80); // bp0, row 0
+    ppu.write_vram(0x1001, 0x80); // bp1, row 0
+    ppu.write_vram(0x1010, 0x80); // bp2, row 0
+    ppu.write_vram(0x1011, 0x80); // bp3, row 0
+    
+    // Set rest of tile to 0
+    for (int i = 2; i < 16; ++i) ppu.write_vram(0x1000 + i, 0x00);
+    for (int i = 18; i < 32; ++i) ppu.write_vram(0x1000 + i, 0x00);
+    
+    // Set Tilemap at 0x0000 to use Tile 0, Palette 0
+    ppu.write_vram(0x0000, 0x00);
+    ppu.write_vram(0x0001, 0x00);
+
+    // Set Palette 0, Color 15 manually in CGRAM
+    // 4bpp: 16 colors per palette. Palette 0 starts at CGRAM 0. Color 15 is at CGRAM 15.
+    // Write color red (0x001F) to CGRAM index 15
+    ppu.write_cgram(30, 0x1F); // Low byte
+    ppu.write_cgram(31, 0x00); // High byte (0x001F)
+    
+    // Render scanline 0
+    ppu.render_full_scanline(0);
+    
+    // Check pixel 0,0
+    uint16_t pixel = ppu.get_framebuffer_row(0)[0];
+    EXPECT_EQ(pixel, 0x001F);
+    
+    // Check pixel 0,1 (should be 0 / transparent / backdrop)
+    uint16_t pixel2 = ppu.get_framebuffer_row(0)[1];
+    EXPECT_EQ(pixel2, 0x0000);
+}

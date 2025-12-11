@@ -62,10 +62,11 @@ public:
     void render_background_layer(int bg, int scanline);
     void render_sprite_layer(int scanline);
     void apply_priority_logic(int scanline);
-    void apply_color_math(int scanline);
-    void apply_mosaic_effect(int scanline);
-    void apply_window_masking(int scanline);
+    void apply_color_math(int scanline, PixelInfo* line_buffer);
+    void apply_mosaic_effect(int scanline, PixelInfo* line_buffer);
+    void apply_window_masking(int scanline, PixelInfo* line_buffer);
     void render_mode0_background(int bg, int scanline, PixelInfo* out);
+    void render_mode1_background(int bg, int scanline, PixelInfo* out);
     void render_mode7_background(int scanline);
     void render_scanline_stub();
     void render_sprite_stub();
@@ -134,6 +135,20 @@ private:
     uint8_t cgram_addr_ = 0;
     uint8_t tm_ = 0;
     uint8_t ts_ = 0;
-    // TODO: Add windowing, color math, mode 7, and status registers
+    // Windowing / Color Math registers
+    uint8_t w12sel_ = 0;   // $2123
+    uint8_t w34sel_ = 0;   // $2124
+    uint8_t wobjsel_ = 0;  // $2125
+    uint8_t wh0_ = 0, wh1_ = 0; // $2126, $2127 (Window 1 L/R)
+    uint8_t wh2_ = 0, wh3_ = 0; // $2128, $2129 (Window 2 L/R)
+    uint8_t wbglog_ = 0;   // $212A
+    uint8_t wobjlog_ = 0;  // $212B
+    // tm_ ($212C) and ts_ ($212D) are already defined
+    uint8_t tmw_ = 0;      // $212E
+    uint8_t tsw_ = 0;      // $212F
+    uint8_t cgwsel_ = 0;   // $2130
+    uint8_t cgadsub_ = 0;  // $2131
+    uint8_t coldata_ = 0;  // $2132
+    // TODO: Add status registers (already partly handled)
     Bus* bus_ = nullptr;
 };

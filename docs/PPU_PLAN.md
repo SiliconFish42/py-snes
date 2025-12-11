@@ -109,22 +109,23 @@
 - **Memory Management**: VRAM (64KB), CGRAM (512B), OAM (544B) with proper wraparound
 - **Register System**: All $2100-$213F registers with correct read/write behavior and side effects
 - **Sprite System**: Attribute parsing, scanline evaluation, Y wrapping, overflow handling (32 sprite limit), rendering and priority logic
-- **Background System**: Mode 0 rendering with scrolling, tile fetching, tilemap/tiledata base calculation, and per-pixel BG priority logic
+- **Background System**: Mode 0 and Mode 1 rendering with scrolling, tile fetching, tilemap/tiledata base calculation, and per-pixel BG priority logic
+- **Advanced Features**: Windowing and Color Math registers implemented (logic stubbed)
 - **Timing System**: Scanline/frame timing (262 scanlines, 341 dots per scanline), VBlank/HBlank detection
 - **Framebuffer**: 256x224 output with PPM export capability
-- **Test Coverage**: 24 comprehensive unit tests covering all implemented functionality, including BG/sprite priority
+- **Test Coverage**: 25 comprehensive unit tests covering all implemented functionality, including BG/sprite priority and Mode 1
 
 ### 🔄 Next Steps (Phase 4)
 
 1. **Implement full video output and synchronization** with CPU
-2. **Add support for all BG modes** (0-7) with proper tile formats and advanced features
-3. **Implement color math and windowing**
+2. **Add support for remaining BG modes** (2-7) with proper tile formats and advanced features
+3. **Implement full color math and windowing logic** (currently stubs)
 4. **Expand test coverage** for advanced rendering and timing edge cases
 
 ### 📊 Test Results
 
-- **Total Tests**: 24
-- **Passing**: 24 ✅
+- **Total Tests**: 25
+- **Passing**: 25 ✅
 - **Failing**: 0 ✅
 - **Coverage**: Comprehensive coverage of Phases 1-2 functionality
 
@@ -148,6 +149,9 @@
 - Implemented VBLANK/HBLANK status register logic ($213C–$213F) in the PPU
 - Implemented NMI trigger at the start of VBLANK (scanline 224)
 - Added and refined unit tests for PPU timing and status register behavior
+- **Implemented Background Mode 1 (3 BGs: 4bpp, 4bpp, 2bpp) rendering logic**
+- **Implemented Windowing ($2123-$2125) and Color Math ($2130-$2133) registers**
+- **Added unit test `PPUTest.BGMode1Rendering` verified passing**
 - All PPU and regression tests are passing
 - **Design decision:** For RL/AI, the primary video output will be a Python-accessible framebuffer (NumPy array or buffer). Real-time display (SDL, PyGame, etc.) will be optional and not a core dependency, to ensure headless and cloud/CI compatibility.
 - Ready to proceed with Pythonic framebuffer output and optional visualization utilities
