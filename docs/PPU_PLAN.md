@@ -88,7 +88,8 @@
 - Basic register mirroring implemented
 - ✅ Mode 7 Implementation (Basic + Rotation)
 - ✅ Windowing Logic Implementation (Masking, Logic Combinations)
-- Need to implement mosaic, color math
+- ✅ Mosaic Implementation (Horizontal/Vertical)
+- ✅ Color Math Implementation (Addition/Subtraction/Halving/Subscreen)
 
 ## 📋 Phase 6: Comprehensive Test Coverage and CI Integration (PLANNED)
 
@@ -128,8 +129,8 @@
 
 ### 📊 Test Results
 
-- **Total Tests**: 32
-- **Passing**: 32 ✅
+- **Total Tests**: 36 (PPU Specific)
+- **Passing**: 36 ✅
 - **Failing**: 0 ✅
 - **Coverage**: Comprehensive coverage of Phases 1-3 functionality + Windowing/Mode 7
 
@@ -160,5 +161,8 @@
 - **Added unit tests `PPUWindowTest.*` (5 tests) covering all windowing features. Verified passing.**
 - **Resolved Issue**: Fixed `TM` vs `TMW` register address confusion ($212C vs $212E).
 - **Resolved Issue**: Added missing register write handlers for Windowing/Color Math ($2123-$2133). 
-- All PPU and regression tests are passing (32 Total)
-- Ready to proceed with Color Math and Mosaic implementation.
+- **Implemented Color Math**: Addition, Subtraction, Halving, Subscreen/Main composition. Verified with new unit tests.
+- **Implemented Mosaic**: Horizontal and Vertical Mosaic scaling. Verified with unit tests.
+- **Fixed ROM Tests**: Corrected paths for `cputest` ROMs in `test_rom.cpp`, resolving regression failures.
+- All PPU and full project tests are passing (536 Total).
+- Ready to proceed with remaining BG Modes and Display Effects.

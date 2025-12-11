@@ -4,7 +4,6 @@
 #include <gtest/gtest.h>
 #include <numeric> // Required for std::accumulate
 
-
 class PPUTest : public ::testing::Test {
 protected:
   PPU ppu;
@@ -533,6 +532,7 @@ TEST_F(PPUTest, FramebufferNotAllZerosAfterRenderScanlineStub) {
 TEST_F(PPUTest, BGMode7Basic) {
   // Mode 7 Setup
   ppu.write_register(0x2105, 0x07); // Set Mode 7
+  ppu.write_register(0x212C, 0x01); // Enable BG1 (TM)
 
   // Identity Matrix: A=0100 (1.0), B=0, C=0, D=0100 (1.0)
   // Write L then H
@@ -575,6 +575,7 @@ TEST_F(PPUTest, BGMode7Basic) {
 TEST_F(PPUTest, BGMode7Rotation) {
   // Mode 7 Setup
   ppu.write_register(0x2105, 0x07); // Set Mode 7
+  ppu.write_register(0x212C, 0x01); // Enable BG1 (TM)
 
   // Rotation 90 deg (Counter-Clockwise):
   // [ 0 -1 ]
@@ -681,4 +682,181 @@ TEST_F(PPUTest, BGMode1Rendering) {
   // Check pixel 0,1 (should be 0 / transparent / backdrop)
   uint16_t pixel2 = ppu.get_framebuffer_row(0)[1];
   EXPECT_EQ(pixel2, 0x0000);
+}
+
+TEST_F(PPUTest, ColorMathFixedAddition) {
+  // Setup: Mode 0 (2bpp), BG1 enable on Main
+  ppu.write_register(0x2105, 0x00);
+  ppu.write_register(0x212C, 0x01); // Main: BG1
+  ppu.write_register(0x212D, 0x00); // Sub: None
+
+  // Color Math Setup
+  // CGWSEL (2130): Fixed Color(0), No Clipping
+  ppu.write_register(0x2130, 0x00);
+
+  // CGADSUB (2131): Enable Math on BG1 (Bit 0), Add (Bit 7=0), No Div
+  ppu.write_register(0x2131, 0x01);
+
+  // COLDATA (2132): Set Fixed Color to Magenta (Red + Blue)
+  // Format details:
+  // Bit 7: B write, Bit 6: G write, Bit 5: R write. Bit 0-4: Intensity.
+  // Set Red = 31 (0x1F) -> 0x20 | 0x1F
+  ppu.write_register(0x2132, 0x20 | 0x1F);
+  // Set Green = 0       -> 0x40 | 0x00
+  ppu.write_register(0x2132, 0x40 | 0x00);
+  // Set Blue = 31       -> 0x80 | 0x1F
+  ppu.write_register(0x2132, 0x80 | 0x1F);
+
+  // BG1 Pixel Setup: Tile 0, Pixel 0.
+  // BG1 Map Base 0x0000, Data Base 0x1000.
+  ppu.write_register(0x2107, 0x00);
+  ppu.write_register(0x210B, 0x01);
+
+  // Set Tile 0 Data Pixel 0 to Color 1 (binary 01)
+  // bp0: 0x80, bp1: 0x00
+  ppu.write_vram(0x1000, 0x80);
+  ppu.write_vram(0x1008, 0x00);
+
+  // Set Tile Map 0 to Tile 0, Palette 0
+  ppu.write_vram(0x0000, 0x00);
+  ppu.write_vram(0x0001, 0x00);
+
+  // Set Palette 0 Color 1 to Green (0x03E0)
+  // CGRAM Addr 2 (Color 1)
+  ppu.write_cgram(2, 0xE0);
+  ppu.write_cgram(3, 0x03);
+
+  // Expected: Green (BG1) + Magenta (Fixed) = White (Total Saturation)
+  // Actually:
+  // BG1: R=0, G=31, B=0
+  // Fixed: R=31, G=0, B=31
+  // Result: R=31, G=31, B=31 -> White (0x7FFF)
+  ppu.render_full_scanline(0);
+
+  EXPECT_EQ(ppu.get_framebuffer_row(0)[0], 0x7FFF);
+}
+
+TEST_F(PPUTest, ColorMathSubscreenAddition) {
+  // Setup: BG1 on Main, BG2 on Sub.
+  // BG1 (Main): Red. BG2 (Sub): Blue.
+  // Math: Add Sub to Main.
+  // Result: Red + Blue = Magenta.
+
+  ppu.write_register(0x2105, 0x00); // Mode 0
+  ppu.write_register(0x212C, 0x01); // Main: BG1
+  ppu.write_register(0x212D, 0x02); // Sub: BG2
+
+  // Color Math: Enable for BG1, Add, Use Subscreen
+  ppu.write_register(0x2130,
+                     0x02); // CGWSEL: Use Subscreen (Bit 1=1), No Clipping
+  ppu.write_register(0x2131, 0x01); // CGADSUB: Enable on BG1, Add
+
+  // BG1 Setup (Red)
+  ppu.write_register(0x2107, 0x00); // Map 0x0000
+  ppu.write_register(0x210B, 0x01); // Data 0x1000
+  // Tile 0 Data (Pixel 0 = 1)
+  ppu.write_vram(0x1000, 0x80);
+  ppu.write_vram(0x1008, 0x00);
+  // Map 0 -> Tile 0
+  ppu.write_vram(0x0000, 0x00);
+  // Palette 0 Color 1 = Red
+  ppu.write_cgram(2, 0x1F);
+  ppu.write_cgram(3, 0x00);
+
+  // BG2 Setup (Blue)
+  ppu.write_register(0x2108,
+                     0x04); // Map 0x1000 (Conflict? No, BG1 Data is there.
+                            // Let's use 0x2000 for Map, Data 0x3000)
+  // Let's shift BG2 stuff to avoid conflict with BG1 Data at 0x1000.
+  // BG2 Map: 0x2000 (BG2SC=0x04 -> 0x2000? No 0x04 is 0x2000)
+  ppu.write_register(0x2108, 0x04);
+  // BG2 Data: 0x3000 (BG2NBA=0x03)
+  // Register 210B is BG1/BG2 NBA. High nibble BG2, Low BG1.
+  // BG1=0x1 (0x1000). BG2=0x3 (0x3000). -> 0x31
+  ppu.write_register(0x210B, 0x31);
+
+  // BG2 Map at 0x2000. Tile 0.
+  ppu.write_vram(0x2000, 0x00);
+  ppu.write_vram(0x2001, 0x00);
+
+  // BG2 Data at 0x3000. Tile 0. Pixel 0 = 1.
+  ppu.write_vram(0x3000, 0x80);
+  ppu.write_vram(0x3008, 0x00);
+
+  // BG2 uses Palette 0 too (Mode 0 sharing? No, Mode 0 BGs have specific
+  // palette ranges). BG1 uses Palette 0-7 (actually Mode 0: BG1 colors 0-3, BG2
+  // colors 4-7 etc). BG1 uses Color 1 in subpalette 0? -> Color 1. BG2 uses
+  // Color 1 in subpalette 0? -> Color 5 (Palette 1, Color 1). Mode 0: BG1:
+  // Palette 0-7 (Colors 0-31)? No. Mode 0: 4 BGs, 2bpp (4 colors). BG1: Colors
+  // 0-3. BG2: Colors 4-7. BG3: Colors 8-11. BG4: Colors 12-15.
+
+  // So for BG1, pixel value 1 references Color 1.
+  // For BG2, pixel value 1 references Color 5 (4+1).
+
+  // Set Color 1 (BG1) to Red (0x001F).
+  ppu.write_cgram(2, 0x1F);
+  ppu.write_cgram(3, 0x00);
+
+  // Set Color 33 (BG2 Palette 0 Color 1) to Blue (0x7C00).
+  // BG2 In Mode 0 starts at Color 32.
+  // Color 1 is 32 + 1 = 33.
+  // Address = 33 * 2 = 66 (0x42)
+  ppu.write_cgram(66, 0x00);
+  ppu.write_cgram(67, 0x7C);
+
+  // Render
+  ppu.render_full_scanline(0);
+
+  // Expect Magenta (Red+Blue = 0x7C1F)
+  EXPECT_EQ(ppu.get_framebuffer_row(0)[0], 0x7C1F);
+}
+
+TEST_F(PPUTest, MosaicHorizontal) {
+  // Setup Mode 0, BG1
+  ppu.write_register(0x2105, 0x00);
+  ppu.write_register(0x212C, 0x01); // Enable BG1
+
+  // Mosaic (2106):
+  // Bit 0-3: Size (val+1). Set to 3 -> 4x4 blocks.
+  // Bit 4-7: Enable for BG1 (Bit 4).
+  // Total: 0x13
+  ppu.write_register(0x2106, 0x13);
+
+  // BG1 Data:
+  // Tile 0 (Pixel 0..7). make Pixel 0 Red, Pixel 1 Blue.
+  // bp0: 10000000... -> Pixel 0 has bit 0 set
+  // bp1: 01000000... -> Pixel 1 has bit 1 set
+  // Pixel 0 = Color 1. Pixel 1 = Color 2.
+  ppu.write_register(0x210B, 0x01); // Data 0x1000
+  ppu.write_vram(0x1000, 0x80);     // bp0
+  ppu.write_vram(0x1008, 0x40);     // bp1
+
+  // Map
+  ppu.write_register(0x2107, 0x00); // Map 0x0000
+  ppu.write_vram(0x0000, 0x00);     // Tile 0
+
+  // Palette
+  // Color 1: Red (0x001F)
+  ppu.write_cgram(2, 0x1F);
+  ppu.write_cgram(3, 0x00);
+  // Color 2: Blue (0x7C00)
+  ppu.write_cgram(4, 0x00);
+  ppu.write_cgram(5, 0x7C);
+
+  // Render scanline 0
+  ppu.render_full_scanline(0);
+
+  // Mosaic Size 4.
+  // Pixels 0,1,2,3 should all use Pixel 0's color (Red).
+  // Normal result without mosaic would be P0=Red, P1=Blue.
+  const uint16_t *row = ppu.get_framebuffer_row(0);
+  EXPECT_EQ(row[0], 0x001F);
+  EXPECT_EQ(row[1], 0x001F) << "Pixel 1 should be Mosaic'd from Pixel 0";
+  EXPECT_EQ(row[2], 0x001F) << "Pixel 2 should be Mosaic'd from Pixel 0";
+  EXPECT_EQ(row[3], 0x001F) << "Pixel 3 should be Mosaic'd from Pixel 0";
+  // Pixel 4 starts next block. It fetches pixel 4 from BG.
+  // Pixel 4 in our tile data is 0 (Transparent/Backdrop).
+  // Backdrop is Color 0 usually, or transparent black?
+  // Since only BG1 is enabled and it's transparent, it should be 0.
+  EXPECT_EQ(row[4], 0x0000);
 }

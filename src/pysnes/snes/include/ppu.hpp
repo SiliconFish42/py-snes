@@ -62,7 +62,7 @@ public:
   void render_background_layer(int bg, int scanline);
   void render_sprite_layer(int scanline);
   void apply_priority_logic(int scanline);
-  void apply_color_math(int scanline, PixelInfo *line_buffer);
+  void apply_color_math(PixelInfo *main_screen, const PixelInfo *sub_screen);
   void apply_mosaic_effect(int scanline, PixelInfo *line_buffer);
   void apply_window_masking(int scanline, PixelInfo *line_buffer);
   void render_mode0_background(int bg, int scanline, PixelInfo *out);
@@ -139,21 +139,22 @@ private:
   uint8_t tm_ = 0;
   uint8_t ts_ = 0;
   // Windowing / Color Math registers
-  uint8_t w12sel_ = 0;  // $2123
-  uint8_t w34sel_ = 0;  // $2124
-  uint8_t wobjsel_ = 0; // $2125
-  uint8_t wh0_ = 0;     // $2126 (Window 1 Left)
-  uint8_t wh1_ = 0;     // $2127 (Window 1 Right)
-  uint8_t wh2_ = 0;     // $2128 (Window 2 Left)
-  uint8_t wh3_ = 0;     // $2129 (Window 2 Right)
-  uint8_t wbglog_ = 0;  // $212A
-  uint8_t wobjlog_ = 0; // $212B
-  uint8_t tmw_ = 0;     // $212E (TMW - Main Screen Window Mask)
-  uint8_t tsw_ = 0;     // $212F (TSW - Sub Screen Window Mask)
-  uint8_t cgwsel_ = 0;  // $2130
-  uint8_t cgadsub_ = 0; // $2131
-  uint8_t coldata_ = 0; // $2132 (Last write)
-  uint8_t setini_ = 0;  // $2133
+  uint8_t w12sel_ = 0;       // $2123
+  uint8_t w34sel_ = 0;       // $2124
+  uint8_t wobjsel_ = 0;      // $2125
+  uint8_t wh0_ = 0;          // $2126 (Window 1 Left)
+  uint8_t wh1_ = 0;          // $2127 (Window 1 Right)
+  uint8_t wh2_ = 0;          // $2128 (Window 2 Left)
+  uint8_t wh3_ = 0;          // $2129 (Window 2 Right)
+  uint8_t wbglog_ = 0;       // $212A
+  uint8_t wobjlog_ = 0;      // $212B
+  uint8_t tmw_ = 0;          // $212E (TMW - Main Screen Window Mask)
+  uint8_t tsw_ = 0;          // $212F (TSW - Sub Screen Window Mask)
+  uint8_t cgwsel_ = 0;       // $2130
+  uint8_t cgadsub_ = 0;      // $2131
+  uint8_t coldata_ = 0;      // $2132 (Last write)
+  uint16_t fixed_color_ = 0; // Internal standard fixed color (15-bit)
+  uint8_t setini_ = 0;       // $2133
   // Mode 7 Registers ($211A-$2120)
   uint8_t m7sel_ = 0; // $211A
   uint16_t m7a_ = 0;  // $211B (Matrix A)
