@@ -59,7 +59,7 @@
 
 1. **Write tests** for framebuffer output, video timing, and synchronization (mock or headless if needed)
 2. **Implement** framebuffer output (256x224, 512x448, RGB888 or similar)
-3. **Expose framebuffer as a Python-accessible NumPy array or buffer for RL/AI use**
+3. **✅ Expose framebuffer as a Python-accessible NumPy array or buffer for RL/AI use**
 4. **(Optional)** Integrate with SDL, PyGame, or similar for real-time visual output (utility only, not core)
 5. **Synchronize** PPU and CPU timing (scanline, VBLANK, HBLANK)
 6. **Refactor/expand tests** for timing and output correctness
@@ -71,21 +71,24 @@
 - VBLANK/HBLANK status register logic implemented and tested
 - NMI trigger at VBLANK implemented and tested
 - All PPU unit tests, including timing/status, are passing
-- **Next step: Expose framebuffer as a Python-accessible NumPy array or buffer for RL/AI workflows**
+- **Next step: Implement full video output and synchronization with CPU**
 - **Real-time display (SDL, PyGame, etc.) will be an optional, decoupled utility**
 
-## 📋 Phase 5: Advanced Features and Edge Cases (PLANNED)
+## 📋 Phase 5: Advanced Features and Edge Cases (IN PROGRESS)
 
 1. **Write tests** for Mode 7, windowing, mosaic, color math, and hardware quirks
-2. **Implement** Mode 7, windowing, mosaic, and special color math
-3. **Implement** open bus, register mirroring, and hardware quirks
-4. **Add support** for forced blank, brightness, and display enable/disable
-5. **Refactor/expand tests** for advanced features and edge cases
+2. **✅ Implement** Windowing logic (masking, logic combinations, inversion)
+3. **Implement** Mosaic and special color math
+4. **Implement** open bus, register mirroring, and hardware quirks
+5. **Add support** for forced blank, brightness, and display enable/disable
+6. **Refactor/expand tests** for advanced features and edge cases
 
-**Status**: 📋 PLANNED
+**Status**: 🔄 IN PROGRESS
 
 - Basic register mirroring implemented
-- Need to implement Mode 7, windowing, mosaic, color math
+- ✅ Mode 7 Implementation (Basic + Rotation)
+- ✅ Windowing Logic Implementation (Masking, Logic Combinations)
+- Need to implement mosaic, color math
 
 ## 📋 Phase 6: Comprehensive Test Coverage and CI Integration (PLANNED)
 
@@ -96,7 +99,7 @@
 
 **Status**: 📋 PLANNED
 
-- 24 comprehensive unit tests implemented and passing
+- 30+ comprehensive unit tests implemented and passing
 - Need to add integration tests with known-good ROMs
 - Need to set up CI integration
 
@@ -109,25 +112,26 @@
 - **Memory Management**: VRAM (64KB), CGRAM (512B), OAM (544B) with proper wraparound
 - **Register System**: All $2100-$213F registers with correct read/write behavior and side effects
 - **Sprite System**: Attribute parsing, scanline evaluation, Y wrapping, overflow handling (32 sprite limit), rendering and priority logic
-- **Background System**: Mode 0 and Mode 1 rendering with scrolling, tile fetching, tilemap/tiledata base calculation, and per-pixel BG priority logic
-- **Advanced Features**: Windowing and Color Math registers implemented (logic stubbed)
+- **Background System**: Modes 0, 1, and 7 rendering with scrolling, tile fetching. Mode 7 supports Affine transformations (Rotation/Scaling).
+- **Advanced Features**: Windowing logic fully implemented (Masking, Logic Combinations). Color Math registers implemented (logic stubbed). Mode 7 registers fully implemented.
 - **Timing System**: Scanline/frame timing (262 scanlines, 341 dots per scanline), VBlank/HBlank detection
 - **Framebuffer**: 256x224 output with PPM export capability
-- **Test Coverage**: 25 comprehensive unit tests covering all implemented functionality, including BG/sprite priority and Mode 1
+- **Test Coverage**: 30+ comprehensive unit tests covering all implemented functionality, including Windowing, Mode 1/7, and Priority.
 
-### 🔄 Next Steps (Phase 4)
+### 🔄 Next Steps (Phase 5)
 
 1. **Implement full video output and synchronization** with CPU
-2. **Add support for remaining BG modes** (2-7) with proper tile formats and advanced features
-3. **Implement full color math and windowing logic** (currently stubs)
-4. **Expand test coverage** for advanced rendering and timing edge cases
+2. **Add support for remaining BG modes** (2-6) with proper tile formats and advanced features
+3. **Implement full color math logic** (currently stubs)
+4. **Implement Mosaic effects**
+5. **Expand test coverage** for advanced rendering and timing edge cases
 
 ### 📊 Test Results
 
-- **Total Tests**: 25
-- **Passing**: 25 ✅
+- **Total Tests**: 32
+- **Passing**: 32 ✅
 - **Failing**: 0 ✅
-- **Coverage**: Comprehensive coverage of Phases 1-2 functionality
+- **Coverage**: Comprehensive coverage of Phases 1-3 functionality + Windowing/Mode 7
 
 ---
 
@@ -140,7 +144,7 @@
 **Milestone Goal:**
 
 - ✅ Achieved accurate, testable SNES PPU emulation with full register, memory, and basic rendering logic, verified by comprehensive automated tests.
-- 🎯 Next: Complete rendering pipeline with priority logic and advanced features.
+- 🎯 Next: Complete Color Math, Mosaic, and remaining BG modes.
 
 ---
 
@@ -150,8 +154,11 @@
 - Implemented NMI trigger at the start of VBLANK (scanline 224)
 - Added and refined unit tests for PPU timing and status register behavior
 - **Implemented Background Mode 1 (3 BGs: 4bpp, 4bpp, 2bpp) rendering logic**
-- **Implemented Windowing ($2123-$2125) and Color Math ($2130-$2133) registers**
-- **Added unit test `PPUTest.BGMode1Rendering` verified passing**
-- All PPU and regression tests are passing
-- **Design decision:** For RL/AI, the primary video output will be a Python-accessible framebuffer (NumPy array or buffer). Real-time display (SDL, PyGame, etc.) will be optional and not a core dependency, to ensure headless and cloud/CI compatibility.
-- Ready to proceed with Pythonic framebuffer output and optional visualization utilities
+- **Implemented Background Mode 7 (Affine/Rotation/Scaling) rendering logic**
+- **Implemented Mode 7 registers ($211A-$2120) and 16-bit latching**
+- **Implemented Windowing Logic**: Full support for Window 1/2, Inversion, Logic Combinations (AND/OR/XOR/XNOR), and Masking.
+- **Added unit tests `PPUWindowTest.*` (5 tests) covering all windowing features. Verified passing.**
+- **Resolved Issue**: Fixed `TM` vs `TMW` register address confusion ($212C vs $212E).
+- **Resolved Issue**: Added missing register write handlers for Windowing/Color Math ($2123-$2133). 
+- All PPU and regression tests are passing (32 Total)
+- Ready to proceed with Color Math and Mosaic implementation.

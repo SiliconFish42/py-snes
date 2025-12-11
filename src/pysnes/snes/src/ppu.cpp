@@ -1,7 +1,7 @@
 #include "ppu.hpp"
 #include "bus.hpp"
 #include "cpu.hpp"
-#include <cstring>
+#include <fstream>
 #include <string>
 #include <vector>
 
@@ -43,8 +43,40 @@ void PPU::reset() {
   oam_priority_rotation_ = false;
   oam_addr_msb_ = false;
   oam_latch_low_ = true;
-  // TODO: Reset windowing, color math, mode 7, and status registers
-  // TODO: Reset internal PPU state and registers
+  // Windowing
+  w12sel_ = 0;
+  w34sel_ = 0;
+  wobjsel_ = 0;
+  wh0_ = 0;
+  wh1_ = 0;
+  wh2_ = 0;
+  wh3_ = 0;
+  wbglog_ = 0;
+  wobjlog_ = 0;
+  tmw_ = 0;
+  tsw_ = 0;
+  // Color Math
+  cgwsel_ = 0;
+  cgadsub_ = 0;
+  coldata_ = 0;
+  setini_ = 0;
+  // Mode 7
+  m7sel_ = 0;
+  m7a_ = 0;
+  m7b_ = 0;
+  m7c_ = 0;
+  m7d_ = 0;
+  m7x_ = 0;
+  m7y_ = 0;
+  m7_latch_ = 0;
+  m7_prev_write_hi_ = false;
+
+  // Status flags (internal)
+  vblank_ = false;
+  hblank_ = false;
+  scanline_ = 0;
+  dot_ = 0;
+  frame_ = 0;
 }
 
 // VRAM access
@@ -368,6 +400,33 @@ void PPU::write_register(uint16_t addr, uint8_t value) {
       // Increment by 1
       vram_addr_ += 1;
     }
+    break;
+  case 0x211A: // M7SEL (Mode 7 Settings)
+    m7sel_ = value;
+    break;
+  case 0x211B: // M7A (Matrix A)
+    m7a_ = (value << 8) | m7_latch_;
+    m7_latch_ = value;
+    break;
+  case 0x211C: // M7B (Matrix B)
+    m7b_ = (value << 8) | m7_latch_;
+    m7_latch_ = value;
+    break;
+  case 0x211D: // M7C (Matrix C)
+    m7c_ = (value << 8) | m7_latch_;
+    m7_latch_ = value;
+    break;
+  case 0x211E: // M7D (Matrix D)
+    m7d_ = (value << 8) | m7_latch_;
+    m7_latch_ = value;
+    break;
+  case 0x211F: // M7X (Center X)
+    m7x_ = (value << 8) | m7_latch_;
+    m7_latch_ = value;
+    break;
+  case 0x2120: // M7Y (Center Y)
+    m7y_ = (value << 8) | m7_latch_;
+    m7_latch_ = value;
     break;
   case 0x2121: // CGADD (CGRAM Address)
     cgram_addr_ = value;
@@ -735,7 +794,7 @@ void PPU::render_full_scanline(int scanline) {
       }
     }
   } else if (bgmode == 7) {
-    render_mode7_background(scanline);
+    render_mode7_background(scanline, bg_candidate);
   }
 
   // Apply Effects
@@ -854,9 +913,74 @@ void PPU::render_mode1_background(int bg, int scanline, PixelInfo *out) {
   }
 }
 
-void PPU::render_mode7_background(int scanline) {
-  // Stub: Mode 7 rendering not implemented yet
-  (void)scanline;
+void PPU::render_mode7_background(int scanline, PixelInfo *out) {
+  // Mode 7: 128x128 tiles, 8x8 pixels per tile, 256 colors (palette 0)
+  // Map at $0000 words (low byte), Tile Data at $0000 words (high byte).
+
+  // Matrix Parameters (16-bit signed)
+  int16_t A = (int16_t)m7a_;
+  int16_t B = (int16_t)m7b_;
+  int16_t C = (int16_t)m7c_;
+  int16_t D = (int16_t)m7d_;
+  int16_t x0 = (int16_t)m7x_;
+  int16_t y0 = (int16_t)m7y_;
+
+  // Scroll (M7HOFS/M7VOFS are signed 13-bit)
+  int H = (int16_t)bg_hofs_[0];
+  int V = (int16_t)bg_vofs_[0];
+
+  for (int x = 0; x < kScreenWidth; ++x) {
+    // Local coordinates relative to center
+    int local_x = x + H - x0;
+    int local_y = scanline + V - y0;
+
+    // Apply rotation/scale (fixed point 8.8)
+    int p_x = ((A * local_x) + (B * local_y)) >> 8;
+    int p_y = ((C * local_x) + (D * local_y)) >> 8;
+
+    // Add center back
+    int final_x = p_x + x0;
+    int final_y = p_y + y0;
+
+    bool outside =
+        (final_x < 0 || final_x >= 1024 || final_y < 0 || final_y >= 1024);
+
+    // M7SEL Bit 7: Screen Repetition (0=Wrap, 1=Outside is Transp/Char0)
+    if ((m7sel_ & 0x80) && outside) {
+      out[x].color = 0;
+      out[x].transparent = true;
+      continue; // Or render character 0 logic if needed
+    }
+
+    // Wrap coordinates to 1024x1024
+    int map_x = final_x & 0x3FF;
+    int map_y = final_y & 0x3FF;
+
+    // TileMap Access (Low Byte of word)
+    // Index = (Y / 8) * 128 + (X / 8)
+    int tx = map_x / 8;
+    int ty = map_y / 8;
+    uint16_t map_addr = (ty * 128 + tx) * 2;
+    uint8_t tile_num = vram_[map_addr % vram_.size()];
+
+    // Pixel Access (High Byte of word)
+    // Word Addr = TileNum * 64 + Py * 8 + Px
+    int px = map_x % 8;
+    int py = map_y % 8;
+    uint32_t pixel_addr = (tile_num * 64 + py * 8 + px) * 2 + 1;
+    uint8_t color_index = vram_[pixel_addr % vram_.size()];
+
+    if (color_index > 0) {
+      out[x].color = get_cgram_color(color_index);
+      out[x].priority = 0;
+      out[x].transparent = false;
+      out[x].bg_layer = 0;
+    } else {
+      out[x].color = 0;
+      out[x].transparent = true;
+      out[x].bg_layer = 0;
+    }
+  }
 }
 
 std::vector<uint8_t> PPU::get_framebuffer_rgb() const {
@@ -876,25 +1000,135 @@ std::vector<uint8_t> PPU::get_framebuffer_rgb() const {
   return rgb;
 }
 
+// --- Windowing Logic ---
+bool PPU::check_window_hit(int x, int bg_layer, int window_param_offset) const {
+  // Access registers based on layer:
+  // Layout in registers:
+  // BG1: W12SEL(2123) bits 0-7
+  // BG2: W12SEL(2123) bits 8-15 (but we use byte arrays, so check index)
+  // Actually PPU has separate bytes for w12sel_(0x2123), w34sel_(0x2124),
+  // wobjsel_(0x2125) PPU register mapping logic simplifies this into members.
+
+  uint8_t sel_reg = 0;
+  int shift = 0;
+
+  if (bg_layer == 0) { // BG1
+    sel_reg = w12sel_;
+    shift = 0;
+  } else if (bg_layer == 1) { // BG2
+    sel_reg = w12sel_;
+    shift = 4;
+  } else if (bg_layer == 2) { // BG3
+    sel_reg = w34sel_;
+    shift = 0;
+  } else if (bg_layer == 3) { // BG4
+    sel_reg = w34sel_;
+    shift = 4;
+  } else if (bg_layer == 4) { // OBJ
+    sel_reg = wobjsel_;
+    shift = 0;                // OBJ is low 4 bits of 2125
+  } else if (bg_layer == 5) { // Color Window
+    sel_reg = wobjsel_;
+    shift = 4; // Color is high 4 bits of 2125
+  }
+
+  // Bits at shift:
+  // 0: Window 1 Inversion (0=normal, 1=invert)
+  // 1: Window 1 Enable (0=off, 1=on)
+  // 2: Window 2 Inversion (0=normal, 1=invert)
+  // 3: Window 2 Enable (0=off, 1=on)
+
+  bool w1_inv = (sel_reg >> (shift + 0)) & 0x01;
+  bool w1_en = (sel_reg >> (shift + 1)) & 0x01;
+  bool w2_inv = (sel_reg >> (shift + 2)) & 0x01;
+  bool w2_en = (sel_reg >> (shift + 3)) & 0x01;
+
+  if (window_param_offset == 0) { // Checking Window 1
+    if (!w1_en)
+      return false;
+    bool in_range = (x >= wh0_ && x <= wh1_);
+    return w1_inv ? !in_range : in_range;
+  } else { // Checking Window 2
+    if (!w2_en)
+      return false;
+    bool in_range = (x >= wh2_ && x <= wh3_);
+    return w2_inv ? !in_range : in_range;
+  }
+}
+
+bool PPU::combine_window_logic(bool hit1, bool hit2, int bg_layer,
+                               int logic_param_offset) const {
+  // WBG/OBJ LOG registers:
+  // BG1: 212A bits 0-1
+  // BG2: 212A bits 2-3
+  // BG3: 212A bits 4-5
+  // BG4: 212A bits 6-7
+  // OBJ: 212B bits 0-1
+  // Color: 212B bits 2-3
+
+  uint8_t log_reg = 0;
+  int shift = 0;
+  if (bg_layer < 4) {
+    log_reg = wbglog_;
+    shift = bg_layer * 2;
+  } else {
+    log_reg = wobjlog_;
+    shift = (bg_layer - 4) * 2;
+  }
+
+  int mode = (log_reg >> shift) & 0x03;
+  // 0=OR, 1=AND, 2=XOR, 3=XNOR
+  switch (mode) {
+  case 0:
+    return hit1 || hit2;
+  case 1:
+    return hit1 && hit2;
+  case 2:
+    return hit1 != hit2; // XOR
+  case 3:
+    return hit1 == hit2; // XNOR
+  default:
+    return false; // Should not reach
+  }
+}
+
 void PPU::apply_window_masking(int scanline, PixelInfo *line_buffer) {
-  if (tmw_ == 0)
-    return; // No windows enabled for main screen
+  if (tmw_ == 0 && tsw_ == 0)
+    return; // No main screen windows (ignoring sub for now)
   (void)scanline;
-  // Iterate pixels
+
   for (int x = 0; x < kScreenWidth; ++x) {
     int layer = line_buffer[x].bg_layer;
     if (layer == -1)
       continue;
 
-    // Helper: check if window affects this layer
-    // TMW bits: 0=BG1, 1=BG2, 2=BG3, 3=BG4, 4=OBJ
-    int mask_enabled_bit = (layer < 4) ? (1 << layer) : (1 << 4);
+    int mask_bit = (1 << layer);
 
-    if (tmw_ & mask_enabled_bit) {
-      // Simplified windowing logic for milestone
-      // Check against Window 1 only (wh0-wh1) if TMW is active
-      bool outside_w1 = (x < wh0_ || x > wh1_);
-      if (outside_w1) {
+    if (tmw_ & mask_bit) {
+      bool w1_hit = check_window_hit(x, layer, 0);
+      bool w2_hit = check_window_hit(x, layer, 1);
+
+      uint8_t sel_reg =
+          (layer < 2) ? w12sel_ : ((layer < 4) ? w34sel_ : wobjsel_);
+      int shift = (layer % 2) * 4;
+      if (layer == 4)
+        shift = 0;
+
+      bool w1_en = (sel_reg >> (shift + 1)) & 0x01;
+      bool w2_en = (sel_reg >> (shift + 3)) & 0x01;
+
+      bool inside = false;
+      if (!w1_en && !w2_en) {
+        inside = false;
+      } else if (w1_en && !w2_en) {
+        inside = w1_hit;
+      } else if (!w1_en && w2_en) {
+        inside = w2_hit;
+      } else {
+        inside = combine_window_logic(w1_hit, w2_hit, layer, 0);
+      }
+
+      if (!inside) {
         line_buffer[x].color = 0;
         line_buffer[x].transparent = true;
       }

@@ -10,8 +10,8 @@ class SnesEnv(gym.Env):
 
     def __init__(self, rom_path):
         super(SnesEnv, self).__init__()
-        from pysnes.snes import SNES
-        self.snes = SNES()
+        from pysnes import pysnes_cpp
+        self.snes = pysnes_cpp.SNES()
         self.snes.insert_cartridge(rom_path)
         self.snes.power_on()
 
